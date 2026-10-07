@@ -1,27 +1,51 @@
 
       // =============================================================================================================
-      // HUD Position Manager - the dialogue choices on the right (the owner, 2026-10-07: "move the dialogue selections
-      // to the right of the screen so they don't block the view of the person you're talking to").
-      // The game draws the choices in mcOptionContainer, right of centre, with lines up to 540 units wide, so a short
-      // list sits over the middle of the picture. The whole container is moved sideways so the end of its longest line
-      // is HPM_DIALOG_GAP HUD units from the screen's right edge; the lines stay left aligned with each other, their
-      // icons and the selection arrow move with them. Placed when the game sets the choices and re-checked a few times a
-      // second while they show (a controller switch re-renders the lines without their number prefix). Off: the game's
-      // own position. HUDPositionManager.ws hands in the settings page's values through hpmSetDialog.
+      // HUD Position Manager - the dialogue choices as an element of the layout (the owner, 2026-10-07: "move the
+      // dialogue selections to the right of the screen so they don't block the view of the person you're talking to";
+      // then the page organised as the Skyrim and Oblivion versions are). The game draws the choices in
+      // mcOptionContainer, right of centre, with lines up to 540 units wide. Its Place "At the right edge" moves the whole
+      // container sideways so the end of its longest line meets the screen's right edge; then the element's move (percent
+      // of the screen) and size apply, and Hide hides the list (the game still takes the choice from the keys). Placed
+      // when the game sets the choices and re-checked a few times a second while they show (a controller switch re-renders
+      // the lines without their number prefix). HUDPositionManager.ws hands the layout string in through hpmSetLayout.
       // =============================================================================================================
-      private var HPM_DIALOG_ON:Boolean = true;
-      private var HPM_DIALOG_GAP:Number = 40;
-      private var HPM_DIALOG_DY:Number = 0;     // up (-) / down (+) in HUD units, on or off
-      private var hpmChoiceY0:Number = NaN;
+      private var hpmDlgOn:Boolean = true;      // "Apply my layout"
+      private var hpmDlgPlace:Boolean = true;
+      private var hpmDlgX:Number = 0;
+      private var hpmDlgY:Number = 0;
+      private var hpmDlgS:Number = 1;
+      private var hpmDlgHide:Boolean = false;
       private var hpmChoiceX0:Number = NaN;
+      private var hpmChoiceY0:Number = NaN;
+      private var hpmChoiceS0:Number = NaN;
       private var hpmChoiceFrames:int = 0;
       private var hpmChoiceListening:Boolean = false;
 
-      public function hpmSetDialog(on:Boolean, gap:Number, dy:Number) : void
+      public function hpmSetLayout(spec:String) : void
       {
-         this.HPM_DIALOG_ON = on;
-         this.HPM_DIALOG_GAP = Math.max(0,gap);
-         this.HPM_DIALOG_DY = isNaN(dy) ? 0 : dy;
+         var parts:Array = !spec ? [] : spec.split("|");
+         var i:int = 0;
+         var f:Array = null;
+         if(parts.length < 7 || parts[0] != "1")
+         {
+            return;
+         }
+         this.hpmDlgOn = parts[1] == "1";
+         i = 7;
+         while(i < parts.length)
+         {
+            f = String(parts[i]).split(",");
+            i++;
+            if(f[0] != "Dialogue" || f.length < 10)
+            {
+               continue;
+            }
+            this.hpmDlgX = Number(f[1]);
+            this.hpmDlgY = Number(f[2]);
+            this.hpmDlgS = Number(f[3]);
+            this.hpmDlgHide = f[6] == "1";
+            this.hpmDlgPlace = f[9] == "1";
+         }
          this.hpmPlaceChoices();
       }
 
@@ -36,6 +60,7 @@
          var r:Number = NaN;
          var a:* = undefined;
          var b:* = undefined;
+         var on:Boolean = false;
          if(!c || !c.parent || !stage)
          {
             return;
@@ -44,16 +69,31 @@
          {
             this.hpmChoiceX0 = c.x;
             this.hpmChoiceY0 = c.y;
+            this.hpmChoiceS0 = c.scaleX;
          }
-         c.y = this.hpmChoiceY0 + this.HPM_DIALOG_DY / Math.max(0.01,c.parent.scaleY);
          if(!this.hpmChoiceListening)
          {
             this.hpmChoiceListening = true;
             addEventListener(Event.ENTER_FRAME,this.hpmChoiceFrame,false,0,true);
          }
-         if(!this.HPM_DIALOG_ON)
+         scr = CommonUtils.getScreenRect();
+         if(!scr || scr.width <= 0)
          {
-            c.x = this.hpmChoiceX0;
+            scr = new Rectangle(0,0,stage.stageWidth,stage.stageHeight);
+         }
+         on = this.hpmDlgOn;
+         // size, from the game's own; the list's own origin is where its lines start, so the size grows it to the right
+         c.scaleX = this.hpmChoiceS0 * (on ? this.hpmDlgS : 1);
+         c.scaleY = this.hpmChoiceS0 * (on ? this.hpmDlgS : 1);
+         c.alpha = on && this.hpmDlgHide ? 0 : c.alpha == 0 && this.hpmChoiceHidden ? 1 : c.alpha;
+         this.hpmChoiceHidden = on && this.hpmDlgHide;
+         // the move, percent of the screen in the container's parent's units
+         a = c.parent.globalToLocal(new flash.geom.Point(0,0));
+         b = c.parent.globalToLocal(new flash.geom.Point((on ? this.hpmDlgX : 0) / 100 * scr.width,(on ? this.hpmDlgY : 0) / 100 * scr.height));
+         c.y = this.hpmChoiceY0 + (b.y - a.y);
+         if(!on || !this.hpmDlgPlace)
+         {
+            c.x = this.hpmChoiceX0 + (b.x - a.x);
             return;
          }
          if(!c.mcOptionList || !c.mcOptionList.dataProvider)
@@ -79,19 +119,17 @@
          {
             return;
          }
-         scr = CommonUtils.getScreenRect();
-         if(!scr || scr.width <= 0)
-         {
-            scr = new Rectangle(0,0,stage.stageWidth,stage.stageHeight);
-         }
-         if(Math.abs(scr.right - this.HPM_DIALOG_GAP - right) < 0.5)
+         // the longest line's end on the screen's right edge, then the move
+         if(Math.abs(scr.right + this.hpmDlgX / 100 * scr.width - right) < 0.5)
          {
             return;
          }
          a = c.parent.globalToLocal(new flash.geom.Point(right,0));
-         b = c.parent.globalToLocal(new flash.geom.Point(scr.right - this.HPM_DIALOG_GAP,0));
+         b = c.parent.globalToLocal(new flash.geom.Point(scr.right + this.hpmDlgX / 100 * scr.width,0));
          c.x += b.x - a.x;
       }
+
+      private var hpmChoiceHidden:Boolean = false;
 
       // cheap: only while the choices show, every 10th frame
       private function hpmChoiceFrame(e:Event) : void

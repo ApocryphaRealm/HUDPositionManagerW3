@@ -2,3 +2,7 @@ __pycache__/
 build/
 dist/Mods/modHUDPositionManager/content/blob0.bundle
 dist/Mods/modHUDPositionManager/content/metadata.store
+.xmake/
+vsxmake*/
+dist/bin/x64_dx12/HUDPositionManager.asi
+dist/bin/x64_dx12/HUDPositionManager.pdb

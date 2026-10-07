@@ -52,6 +52,25 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
   - Not given sliders: the quick wheel, the crosshair, the interaction prompts and the floating one-liners (they follow
     the screen's centre or things in the world), the debug console.
   - A slider set to exactly -1 reads as 0 (the game reports a row never set as "-1").
+- Then the whole mod reorganised as the Skyrim and Oblivion versions are (the owner, 2026-10-07: "HUD Position Manager
+  completely reformatted and organized the way HUD Position Manager is in Skyrim and Oblivion. And try and copy as much
+  of their functionality as you can"; plan 4. plans\square-minimap-witcher3\PLAN-2-hpm-parity.md). Phase 1 and part of
+  2, built, not yet seen in game:
+  - The settings page moves to the Apocrypha Menu Framework (HUDPositionManager.asi, ported from the Oblivion version):
+    Presets (load, save, update, delete with a second press), Layout with a tab per element (27: the minimap, the quest
+    list, the player widget and its three bars and two badges, effects, quick items, dialogue choices and 17 more), and
+    Combined widgets. Per element: Place (this mod's spot from 1.0.0, on by default where it had one), move left / right
+    and up / down in 0.1 % steps of the screen (stopping at the screen's edge unless Free placement is on), Size, Length
+    and Height (the bars), Hide, Show (always / only in combat / only out of combat), Always visible (the widgets the
+    game fades), Move with, Reset this element, Reset every element; Apply my layout; the minimap's Zoom. Settings and
+    presets are files beside the plugin (bin\x64_dx12\HUDPositionManager\).
+  - The game's Options > Mods page is gone (hidden): the page sends the whole layout as one string through a hidden
+    setting, and HUDPositionManager.ws hands it to the three HUD movies; the HUD reports back which elements are there
+    and their boxes. The 1.0.0 values on Options > Mods are taken over once.
+  - The minimap movie's code is now one layout engine for every module element; an element left at its defaults with no
+    Place is never touched, and only changed elements are looked at each frame.
+  - Not yet: Show every element (preview), snapping and collision, the bars' Fill from / Grows toward, the damage
+    direction indicator (phase 3); the page's eleven-language files.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 

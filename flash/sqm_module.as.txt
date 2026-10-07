@@ -156,39 +156,548 @@
          return true;
       }
 
-      // once a frame, cheap: keep the square flush with the screen's top right corner (the anchors can move the module on
-      // a resolution or HUD scale change) and keep the north mark on the square's edge as the map turns
-      private function sqmOnFrame(e:Event) : void
+      // =============================================================================================================
+      // The layout (the owner, 2026-10-07: "HUD Position Manager completely reformatted and organized the way HUD
+      // Position Manager is in Skyrim and Oblivion"). The page on the Apocrypha Menu Framework writes the whole layout as
+      // one string; HUDPositionManager.ws hands it in through hpmSetLayout. Every element that is one of the game's HUD
+      // modules is found by its moduleName in the HUD's display tree and given, on top of where the game puts it (or of
+      // this mod's Place for it - the 1.0.0 spots): a move in percent of the screen, a size about its centre, hide, when
+      // it shows (always / in combat / out of combat), always visible, move with another element and the Combined
+      // widgets group. The player widget's parts are moved in hud_wolfstatbars and the dialogue choices in hud_dialog;
+      // this movie reports whether the player widget is there for them.
+      //
+      // Cheap: an element left at its defaults with no Place is never touched. Each frame only the moved elements are
+      // checked for a game move (two property reads); the boxes a Place needs are measured ten times fewer.
+      // =============================================================================================================
+      private var hpmEls:Array = [];            // the module elements, in the page's order
+      private var hpmByKey:Object = {};
+      private var hpmEnabled:Boolean = true;
+      private var hpmAllVisible:Boolean = false;
+      private var hpmGroupX:Number = 0;
+      private var hpmGroupY:Number = 0;
+      private var hpmLayoutSeen:Boolean = false;
+      private var hpmInCombat:Boolean = false;
+      private var hpmCombatUntil:int = 0;       // out of combat counts once 3 s have passed (no blinking between foes)
+      public var sqmReport:String = "";         // read by HUDPositionManager.ws (GetMemberFlashString) for the page
+      private var sqmFrameCount:int = 0;
+      private var sqmQuestOver:Number = 0;      // how far the quest text centred under the square reaches past it
+
+      // the module elements and the game's moduleName of each (Elements.h; the parts are not in this movie's table)
+      private static const HPM_MODULES:Array = [["Minimap",""],["Quests","QuestsModule"],["Player","WolfHeadModule"],
+         ["Buffs","BuffsModule"],["QuickItems","ItemInfoModule"],["Subtitles","SubtitlesModule"],["Messages","MessageModule"],
+         ["Hints","ControlsFeedbackModule"],["Area","AreaInfoModule"],["Journal","JournalUpdateModule"],
+         ["LootFeed","LootFeedModule"],["Enemy","EnemyFocusModule"],["Boss","BossFocusModule"],["Companion","CompanionModule"],
+         ["Breath","OxygenBarModule"],["HorseStamina","HorseStaminaBarModule"],["HorseFear","HorsePanicBarModule"],
+         ["Boat","BoatHealthModule"],["Damaged","DamagedItemsModule"],["TimeLeft","TimeLeftModule"],["TimeLapse","TimeLapseModule"]];
+      private static const HPM_PARTS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Dialogue"];
+
+      private function hpmTable() : void
       {
-         if(!stage || !parent)
+         var i:int = 0;
+         var o:Object = null;
+         if(this.hpmEls.length > 0)
          {
             return;
          }
-         if(this.sqmLastX != this.x || this.sqmLastY != this.y || this.sqmLastW != stage.stageWidth)
+         while(i < HPM_MODULES.length)
          {
-            this.sqmPlace();
+            o = {"key":HPM_MODULES[i][0],"module":HPM_MODULES[i][1],"m":null,"searched":0,
+               "x":0,"y":0,"s":1,"sx":1,"sy":1,"hide":false,"show":0,"always":false,"place":false,"with":"","group":false,"zoom":100,
+               "baseX":NaN,"baseY":NaN,"baseSX":NaN,"baseSY":NaN,"lastX":NaN,"lastY":NaN,"lastSX":NaN,"lastSY":NaN,
+               "hiddenByUs":false,"active":false,"dirty":true};
+            this.hpmEls.push(o);
+            this.hpmByKey[o.key] = o;
+            i++;
+         }
+         // the minimap is this module itself
+         this.hpmByKey["Minimap"].m = this;
+      }
+
+      // "1|<enabled>|<unlocked>|<alwaysVisible>|<preview>|<groupX>|<groupY>|<key>,<x>,<y>,<scale>,<length>,<height>,<hide>,
+      // <show>,<always>,<place>,<moveWith>,<groupMember>,<zoom>,<fill>,<grow>|..." (Settings.cpp LayoutString)
+      public function hpmSetLayout(spec:String) : void
+      {
+         var parts:Array = !spec ? [] : spec.split("|");
+         var i:int = 0;
+         var f:Array = null;
+         var o:Object = null;
+         this.hpmTable();
+         if(parts.length < 7 || parts[0] != "1")
+         {
+            return;
+         }
+         this.hpmEnabled = parts[1] == "1";
+         this.hpmAllVisible = parts[3] == "1";
+         this.hpmGroupX = Number(parts[5]);
+         this.hpmGroupY = Number(parts[6]);
+         i = 7;
+         while(i < parts.length)
+         {
+            f = String(parts[i]).split(",");
+            i++;
+            if(f.length < 13)
+            {
+               continue;
+            }
+            o = this.hpmByKey[f[0]];
+            if(!o)
+            {
+               continue;
+            }
+            o.x = Number(f[1]);
+            o.y = Number(f[2]);
+            o.s = Number(f[3]);
+            o.sx = Number(f[4]);
+            o.sy = Number(f[5]);
+            o.hide = f[6] == "1";
+            o.show = int(f[7]);
+            o.always = f[8] == "1";
+            o.place = f[9] == "1";
+            o["with"] = f[10];
+            o.group = f[11] == "1";
+            o.zoom = Number(f[12]);
+            o.dirty = true;   // re-applied on the next frame, from the game's place
+         }
+         this.hpmLayoutSeen = true;
+         this.sqmQuestOver = 0;
+         i = 0;
+         while(i < this.hpmEls.length)
+         {
+            this.hpmActivate(this.hpmEls[i]);
+            i++;
+         }
+      }
+
+      // the zoom the layout asks for (HUDPositionManager.ws reads it for SetZoom)
+      public function hpmZoom() : Number
+      {
+         var o:Object = !this.hpmByKey ? null : this.hpmByKey["Minimap"];
+         return !o ? 100 : Number(o.zoom);
+      }
+
+      public function hpmSetCombat(on:Boolean) : void
+      {
+         if(on)
+         {
+            this.hpmInCombat = true;
+            this.hpmCombatUntil = 0;
+         }
+         else if(this.hpmInCombat)
+         {
+            this.hpmCombatUntil = flash.utils.getTimer() + 3000;
+         }
+      }
+
+      private function hpmCombatNow() : Boolean
+      {
+         if(this.hpmInCombat && this.hpmCombatUntil > 0 && flash.utils.getTimer() >= this.hpmCombatUntil)
+         {
+            this.hpmInCombat = false;
+            this.hpmCombatUntil = 0;
+         }
+         return this.hpmInCombat;
+      }
+
+      // an element is "active" (looked at every frame) when anything about it differs from the game's own
+      private function hpmActivate(o:Object) : void
+      {
+         var was:Boolean = o.active;
+         o.active = this.hpmEnabled && (o.place || o.x != 0 || o.y != 0 || o.s != 1 || o.sx != 1 || o.sy != 1 || o.hide || o.show != 0
+            || o.always || (this.hpmAllVisible && this.hpmFades(o.key)) || o["with"] != "" || (o.group && (this.hpmGroupX != 0 || this.hpmGroupY != 0)));
+         if(was && !o.active)
+         {
+            this.hpmRelease(o);
+         }
+      }
+
+      private function hpmFades(key:String) : Boolean
+      {
+         return key == "Player" || key == "QuickItems" || key == "Enemy" || key == "Boss" || key == "Companion" || key == "Breath"
+            || key == "HorseStamina" || key == "HorseFear" || key == "Boat";
+      }
+
+      // back to the game's own place, size and visibility
+      private function hpmRelease(o:Object) : void
+      {
+         var m:DisplayObject = o.m as DisplayObject;
+         if(!m || !m.stage)
+         {
+            return;
+         }
+         if(!isNaN(o.baseX) && o.key != "Minimap")
+         {
+            m.x = o.baseX;
+            m.y = o.baseY;
+         }
+         if(!isNaN(o.baseSX))
+         {
+            m.scaleX = o.baseSX;
+            m.scaleY = o.baseSY;
+         }
+         if(o.hiddenByUs)
+         {
+            m.visible = true;
+            o.hiddenByUs = false;
+         }
+         o.baseX = NaN;
+         o.baseSX = NaN;
+         o.lastX = NaN;
+         o.lastSX = NaN;
+      }
+
+      private function hpmFind(o:Object) : DisplayObject
+      {
+         var m:DisplayObject = o.m as DisplayObject;
+         if(m && m.stage)
+         {
+            return m;
+         }
+         o.m = null;
+         if(o.searched > 40 || !stage)
+         {
+            return null;
+         }
+         o.searched++;
+         m = this.sqmFindModule(stage,o.module,6);
+         if(m)
+         {
+            o.m = m;
+            o.baseX = NaN;
+            o.baseSX = NaN;
+            o.lastX = NaN;
+            o.lastSX = NaN;
+            o.dirty = true;
+         }
+         return m;
+      }
+
+      // percent of the screen -> stage units
+      private function hpmPx(o:Object, scr:Rectangle) : Number
+      {
+         var w:Object = !o["with"] ? null : this.hpmByKey[o["with"]];
+         var v:Number = o.x + (o.group ? this.hpmGroupX : 0) + (!w || w == o ? 0 : w.x + (w.group ? this.hpmGroupX : 0));
+         return v / 100 * scr.width;
+      }
+
+      private function hpmPy(o:Object, scr:Rectangle) : Number
+      {
+         var w:Object = !o["with"] ? null : this.hpmByKey[o["with"]];
+         var v:Number = o.y + (o.group ? this.hpmGroupY : 0) + (!w || w == o ? 0 : w.y + (w.group ? this.hpmGroupY : 0));
+         return v / 100 * scr.height;
+      }
+
+      // stage units -> the module's parent units
+      private function hpmToParent(m:DisplayObject, dx:Number, dy:Number) : flash.geom.Point
+      {
+         var a:* = m.parent.globalToLocal(new flash.geom.Point(0,0));
+         var b:* = m.parent.globalToLocal(new flash.geom.Point(dx,dy));
+         return new flash.geom.Point(b.x - a.x,b.y - a.y);
+      }
+
+      // once a frame, cheap: the square's north mark, the active elements (a game move puts them back on top of it)
+      private function sqmOnFrame(e:Event) : void
+      {
+         var i:int = 0;
+         var heavy:Boolean = false;
+         if(!stage || !parent)
+         {
+            return;
          }
          if(this.mcNorthSign && this.mcNorthSign.rotation != this.sqmNorthRotation)
          {
             this.sqmPlaceNorth();
          }
-         if(this.sqmOffsetCount > 0)
-         {
-            this.sqmApplyOffsets();
-         }
-         // the quest list: a few times a second (its content changes, the game's anchors can move it)
+         this.hpmTable();
          this.sqmFrameCount++;
-         if(this.sqmFrameCount >= 10)
+         heavy = this.sqmFrameCount >= 10;
+         if(heavy)
          {
             this.sqmFrameCount = 0;
-            this.sqmPlaceQuests();
-            this.sqmPlacePlayer();
-            this.sqmPlaceItems();
+         }
+         if(!this.hpmLayoutSeen)
+         {
+            // no layout yet (the page's string arrives through the script): the 1.0.0 places, so the HUD never jumps
+            this.hpmByKey["Minimap"].place = true;
+            this.hpmByKey["Quests"].place = true;
+            this.hpmByKey["Player"].place = true;
+            this.hpmByKey["Buffs"].place = true;
+            this.hpmByKey["QuickItems"].place = true;
+            this.hpmLayoutSeen = true;
+            i = 0;
+            while(i < this.hpmEls.length)
+            {
+               this.hpmActivate(this.hpmEls[i]);
+               i++;
+            }
+         }
+         i = 0;
+         while(i < this.hpmEls.length)
+         {
+            this.hpmApply(this.hpmEls[i],heavy);
+            i++;
+         }
+         if(heavy)
+         {
+            this.hpmMakeReport();
          }
       }
 
-      // the visible screen (the game's own helper: Scaleform's visibleRect - the stage can reach past the screen's edges,
-      // which cut the frame off in the first build: the owner, 2026-10-06 "slightly out of frame")
+      private function hpmApply(o:Object, heavy:Boolean) : void
+      {
+         var m:DisplayObject = null;
+         var scr:Rectangle = null;
+         var want:Boolean = false;
+         var combat:Boolean = false;
+         var k:Number = NaN;
+         var d:flash.geom.Point = null;
+         var gameMoved:Boolean = false;
+         var resized:Boolean = false;
+         if(!o.active)
+         {
+            if(heavy && !o.m)
+            {
+               this.hpmFind(o);   // for the report: is it in the HUD
+            }
+            return;
+         }
+         m = this.hpmFind(o);
+         if(!m || !m.parent)
+         {
+            return;
+         }
+         // the game moved or resized it (an anchor update, a resolution or HUD scale change): its new place is the base.
+         // lastX is where WE put it, so a layout change (dirty) re-applies from the same base instead of from our own move.
+         gameMoved = isNaN(o.lastX) || m.x != o.lastX || m.y != o.lastY;
+         if(gameMoved)
+         {
+            o.baseX = m.x;
+            o.baseY = m.y;
+         }
+         resized = isNaN(o.lastSX) || m.scaleX != o.lastSX || m.scaleY != o.lastSY;
+         if(resized)
+         {
+            o.baseSX = m.scaleX;
+            o.baseSY = m.scaleY;
+         }
+         // visibility: Hide, Show in / out of combat, Always visible
+         combat = this.hpmCombatNow();
+         want = !o.hide && (o.show == 0 || o.show == 1 && combat || o.show == 2 && !combat);
+         if(!want)
+         {
+            if(m.visible)
+            {
+               m.visible = false;
+               o.hiddenByUs = true;
+            }
+         }
+         else
+         {
+            if(o.hiddenByUs)
+            {
+               m.visible = true;
+               o.hiddenByUs = false;
+            }
+            if((o.always || this.hpmAllVisible && this.hpmFades(o.key)) && m.alpha < 1)
+            {
+               m.alpha = 1;   // the module's own fade-out is overruled while this is on
+            }
+         }
+         if(!gameMoved && !resized && !o.dirty && !heavy)
+         {
+            return;
+         }
+         o.dirty = false;
+         scr = this.sqmScreen();
+         // size about the element's own centre (its local box, measured when the size or the base changes)
+         k = o.s;
+         m.scaleX = o.baseSX * k * o.sx;
+         m.scaleY = o.baseSY * k * o.sy;
+         if(o.key == "Minimap" || o.key == "Quests" || o.key == "Player" || o.key == "Buffs" || o.key == "QuickItems")
+         {
+            if(o.place)
+            {
+               this.hpmPlace(o,m,scr);
+               o.lastX = m.x;
+               o.lastY = m.y;
+               o.lastSX = m.scaleX;
+               o.lastSY = m.scaleY;
+               return;
+            }
+         }
+         d = this.hpmToParent(m,this.hpmPx(o,scr),this.hpmPy(o,scr));
+         m.x = o.baseX + d.x - this.hpmCentreShift(o,m,true);
+         m.y = o.baseY + d.y - this.hpmCentreShift(o,m,false);
+         o.lastX = m.x;
+         o.lastY = m.y;
+         o.lastSX = m.scaleX;
+         o.lastSY = m.scaleY;
+      }
+
+      // how far its origin moves so the box keeps its centre when the size changes (in parent units)
+      private function hpmCentreShift(o:Object, m:DisplayObject, horizontal:Boolean) : Number
+      {
+         var b:Rectangle = null;
+         if(o.s * o.sx == 1 && o.s * o.sy == 1)
+         {
+            return 0;
+         }
+         b = m.getBounds(m);
+         if(horizontal)
+         {
+            return (b.x + b.width / 2) * (m.scaleX - o.baseSX);
+         }
+         return (b.y + b.height / 2) * (m.scaleY - o.baseSY);
+      }
+
+      // this mod's spots (the 1.0.0 layout): a box edge of the element on a screen corner or beside another element, plus
+      // the element's move (percent of the screen)
+      private function hpmPlace(o:Object, m:DisplayObject, scr:Rectangle) : void
+      {
+         var box:Rectangle = null;
+         var ox:Number = this.hpmPx(o,scr);
+         var oy:Number = this.hpmPy(o,scr);
+         var corner:* = undefined;
+         var wolf:Object = null;
+         var wolfBox:Rectangle = null;
+         var mm:Object = null;
+         var bottom:* = undefined;
+         var over:Number = NaN;
+         if(o.key == "Minimap")
+         {
+            if(!this.sqmReady)
+            {
+               return;
+            }
+            corner = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
+            this.hpmMoveTo(m,corner.x,corner.y,scr.right + ox - (this.hpmByKey["Quests"].place ? this.sqmQuestOver : 0),scr.top + oy);
+         }
+         else if(o.key == "Quests")
+         {
+            mm = this.hpmByKey["Minimap"];
+            if(!this.sqmReady)
+            {
+               return;
+            }
+            this.sqmBoxL = NaN;
+            this.sqmBoxR = NaN;
+            this.sqmBoxT = NaN;
+            this.sqmTextBox(DisplayObjectContainer(m),12);
+            if(isNaN(this.sqmBoxT))
+            {
+               return;
+            }
+            bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
+            // centred exactly under the square; text wider than the square moves the square in from the right (1.0.0)
+            over = (this.sqmBoxR - this.sqmBoxL - (this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,0)).x - this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.left,0)).x)) / 2;
+            if(mm.place && over > this.sqmQuestOver + 0.5)
+            {
+               this.sqmQuestOver = over;
+               mm.dirty = true;
+            }
+            this.hpmMoveTo(m,this.sqmBoxL,this.sqmBoxT,bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2 + ox,bottom.y + oy);
+         }
+         else if(o.key == "Player")
+         {
+            box = this.sqmShownBox(m,12,null);
+            if(box)
+            {
+               this.hpmMoveTo(m,box.left,box.bottom,scr.left + ox,scr.bottom + oy);
+            }
+         }
+         else if(o.key == "Buffs")
+         {
+            wolf = this.hpmByKey["Player"];
+            wolfBox = !wolf.m ? null : this.sqmShownBox(DisplayObject(wolf.m),12,null);
+            box = this.sqmShownBox(m,12,null);
+            if(box && wolfBox)
+            {
+               this.hpmMoveTo(m,box.left,box.bottom,wolfBox.left + ox,wolfBox.top + oy);
+            }
+         }
+         else if(o.key == "QuickItems")
+         {
+            box = this.sqmItemsBox(m);
+            if(box)
+            {
+               this.hpmMoveTo(m,box.left,box.top,scr.left + ox,scr.top + oy);
+            }
+         }
+      }
+
+      // moves m so the stage point (fromX, fromY) of it lands on (toX, toY)
+      private function hpmMoveTo(m:DisplayObject, fromX:Number, fromY:Number, toX:Number, toY:Number) : void
+      {
+         var p:* = undefined;
+         var q:* = undefined;
+         if(Math.abs(fromX - toX) < 0.5 && Math.abs(fromY - toY) < 0.5)
+         {
+            return;
+         }
+         p = m.parent.globalToLocal(new flash.geom.Point(fromX,fromY));
+         q = m.parent.globalToLocal(new flash.geom.Point(toX,toY));
+         m.x += q.x - p.x;
+         m.y += q.y - p.y;
+      }
+
+      // "<key>:<found>:<l>:<t>:<r>:<b>;..." in percent of the screen, for the page's slider ranges (bridge.cpp)
+      private function hpmMakeReport() : void
+      {
+         var s:String = "";
+         var i:int = 0;
+         var o:Object = null;
+         var m:DisplayObject = null;
+         var b:Rectangle = null;
+         var scr:Rectangle = this.sqmScreen();
+         var player:Boolean = false;
+         while(i < this.hpmEls.length)
+         {
+            o = this.hpmEls[i];
+            m = o.m as DisplayObject;
+            if(m && m.stage)
+            {
+               b = o.key == "QuickItems" ? this.sqmItemsBox(m) : (o.key == "Minimap" ? this.hpmMinimapBox() : this.sqmShownBox(m,12,null));
+               if(o.key == "Player")
+               {
+                  player = true;
+               }
+               if(b && b.width > 0)
+               {
+                  s += o.key + ":1:" + this.hpmPct(b.left - scr.left,scr.width) + ":" + this.hpmPct(b.top - scr.top,scr.height) + ":"
+                     + this.hpmPct(b.right - scr.left,scr.width) + ":" + this.hpmPct(b.bottom - scr.top,scr.height) + ";";
+               }
+               else
+               {
+                  s += o.key + ":1;";
+               }
+            }
+            else
+            {
+               s += o.key + ":0;";
+            }
+            i++;
+         }
+         i = 0;
+         while(i < HPM_PARTS.length)
+         {
+            s += HPM_PARTS[i] + ":" + (HPM_PARTS[i] == "Dialogue" || player ? "1" : "0") + ";";
+            i++;
+         }
+         this.sqmReport = s;
+      }
+
+      private function hpmPct(v:Number, whole:Number) : String
+      {
+         return whole <= 0 ? "0" : String(Math.round(v / whole * 1000) / 10);
+      }
+
+      private function hpmMinimapBox() : Rectangle
+      {
+         var a:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.left,this.sqmFrameRect.top));
+         var b:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.bottom));
+         return new Rectangle(a.x,a.y,b.x - a.x,b.y - a.y);
+      }
+
+      // the visible screen (the game's own helper: Scaleform's visibleRect - the stage can reach past the screen's edges)
       private function sqmScreen() : Rectangle
       {
          var r:Rectangle = CommonUtils.getScreenRect();
@@ -197,55 +706,6 @@
             r = new Rectangle(0,0,stage.stageWidth,stage.stageHeight);
          }
          return r;
-      }
-
-      private function sqmPlace() : void
-      {
-         var scr:Rectangle = this.sqmScreen();
-         var corner:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
-         var target:* = new flash.geom.Point(scr.right - SQM_EDGE_RIGHT - this.sqmQuestOver,scr.top + SQM_EDGE_TOP);
-         var a:* = parent.globalToLocal(corner);
-         var b:* = parent.globalToLocal(target);
-         this.x += b.x - a.x;
-         this.y += b.y - a.y;
-         this.sqmLastX = this.x;
-         this.sqmLastY = this.y;
-         this.sqmLastW = stage.stageWidth;
-         if(!this.sqmPlacing)
-         {
-            this.sqmPlacing = true;
-            this.sqmPlaceQuests();
-            this.sqmPlacing = false;
-         }
-      }
-
-      // the quest list directly underneath the square (the owner, 2026-10-06: "I want the quests area moved directly
-      // underneath the minimap"). It is the game's own module "QuestsModule" in its own movie: found once by name in the
-      // HUD's display tree, then moved so the top of what it shows sits a small gap below the square's frame.
-      private var sqmFrameCount:int = 0;
-      private var sqmQuests:DisplayObject;
-      private var sqmQuestsSearched:int = 0;
-      // the square's distance from the screen's top and right edges and the gap above the quest list, in the HUD's
-      // units. The owner, 2026-10-06, after the first builds: "move the minimap out from both sides until the frame is
-      // shown and the quest widget is clearly visible" - defaults 20 / 20 / 8, and a settings page to tune them
-      // (HUDPositionManager.ws passes them in through sqmSetSettings)
-      private var SQM_EDGE_TOP:Number = 4;
-      private var SQM_EDGE_RIGHT:Number = 4;
-      private var SQM_QUEST_GAP:Number = 8;
-      // how far the centred quest text reaches past each side of the square (the widest seen this session - it only
-      // grows, so the square does not jump back and forth as quests change); the square moves in by that much
-      private var sqmQuestOver:Number = 0;
-      private var sqmPlacing:Boolean = false;
-
-      public function sqmSetSettings(top:Number, right:Number, gap:Number) : void
-      {
-         this.SQM_EDGE_TOP = Math.max(0,top);
-         this.SQM_EDGE_RIGHT = Math.max(0,right);
-         this.SQM_QUEST_GAP = Math.max(0,gap);
-         if(this.sqmReady && stage && parent)
-         {
-            this.sqmPlace();
-         }
       }
 
       private function sqmFindModule(root:DisplayObjectContainer, wanted:String, depth:int) : DisplayObject
@@ -284,9 +744,7 @@
          return null;
       }
 
-      // the box of what the quest list SHOWS, in stage space: every visible, non-empty text line (TextField line metrics,
-      // so a wide right- or centre-aligned field counts only its text). The module's own bounds start well above the
-      // title and are wider than the text - the owner wants the text itself directly underneath, centred.
+      // the box of what the quest list SHOWS, in stage space: every visible, non-empty text field (1.0.0)
       private var sqmBoxL:Number;
       private var sqmBoxR:Number;
       private var sqmBoxT:Number;
@@ -301,7 +759,6 @@
          var y:Number = 2;
          var a:* = undefined;
          var fb:Rectangle = null;
-         var b:* = undefined;
          if(!root || depth < 0 || !root.visible)
          {
             return;
@@ -317,8 +774,6 @@
                   tf = TextField(d);
                   if(tf.text.length > 0)
                   {
-                     // across: the text box itself - the game wraps its text inside it, so no line reaches past it
-                     // (line metrics under-measured a long objective line, which then ran off the screen)
                      fb = tf.getBounds(stage);
                      if(isNaN(this.sqmBoxL) || fb.left < this.sqmBoxL)
                      {
@@ -355,107 +810,7 @@
          }
       }
 
-      private function sqmPlaceQuests() : void
-      {
-         var bottom:* = undefined;
-         var over:Number = NaN;
-         var wantY:Number = NaN;
-         var wantX:Number = NaN;
-         var p:* = undefined;
-         var q:* = undefined;
-         if(!this.sqmReady || !stage)
-         {
-            return;
-         }
-         if(!this.sqmQuests || !this.sqmQuests.stage)
-         {
-            this.sqmQuests = null;
-            if(this.sqmQuestsSearched > 40)
-            {
-               return;
-            }
-            this.sqmQuestsSearched++;
-            this.sqmQuests = this.sqmFindModule(stage,"QuestsModule",6);
-            if(!this.sqmQuests)
-            {
-               return;
-            }
-         }
-         this.sqmBoxL = NaN;
-         this.sqmBoxR = NaN;
-         this.sqmBoxT = NaN;
-         this.sqmTextBox(DisplayObjectContainer(this.sqmQuests),12);
-         if(isNaN(this.sqmBoxT))
-         {
-            return;
-         }
-         // directly underneath the square, centred on it (the owner, 2026-10-06: "centered beneath the minimap")
-         bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
-         wantY = bottom.y + SQM_QUEST_GAP;
-         wantX = bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2;
-         // centred exactly; if the text is wider than the square, the square itself moves in from the right edge far
-         // enough for the whole text to show (the owner, 2026-10-06: "move the minimap to where it's far enough away
-         // from the side so that the quest widget can properly display the words while it's centered")
-         over = (this.sqmBoxR - this.sqmBoxL - (this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,0)).x - this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.left,0)).x)) / 2;
-         if(over > this.sqmQuestOver + 0.5)
-         {
-            this.sqmQuestOver = over;
-            this.sqmPlacing = true;
-            this.sqmPlace();
-            this.sqmPlacing = false;
-            bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
-            wantY = bottom.y + SQM_QUEST_GAP;
-            wantX = bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2;
-         }
-         if(Math.abs(this.sqmBoxT - wantY) < 0.5 && Math.abs(this.sqmBoxL - wantX) < 0.5)
-         {
-            return;
-         }
-         p = this.sqmQuests.parent.globalToLocal(new flash.geom.Point(this.sqmBoxL,this.sqmBoxT));
-         q = this.sqmQuests.parent.globalToLocal(new flash.geom.Point(wantX,wantY));
-         this.sqmQuests.x += q.x - p.x;
-         this.sqmQuests.y += q.y - p.y;
-      }
-
-      // after a zoom change (the Zoom setting, or the game's own interior / boat zoom): the hub map only asks for the
-      // tiles around the player when the player MOVES past a threshold (SetPlayerPosition), so a new zoom left part of
-      // the square dark until Geralt walked (2026-10-07, at 50 %). Ask for them now with the current position - the same
-      // call SetPlayerPosition makes - once the position and the world are known.
-      public function sqmRefreshTiles() : void
-      {
-         if(m_worldSize <= 0 || m_playerTileX < 0 || isNaN(m_playerTexturePosX) || !this.mcHubMap)
-         {
-            return;
-         }
-         this.mcHubMap.mcHubMapContainer.UpdatePosition(m_radius,m_playerTexturePosX,m_playerTexturePosY);
-      }
-
-      // the player widget (the game's "WolfHeadModule": medallion, vitality, stamina, toxicity, adrenaline) in the
-      // screen's bottom left instead of the top left (the owner, 2026-10-07: "the player's HUD widget in the top left. I
-      // want it in the bottom left"), PLAYER_LEFT / PLAYER_BOTTOM HUD units in from the edges; its buff icons
-      // ("BuffsModule", normally just underneath it) sit just above it, left aligned. Re-applied a few times a second,
-      // as for the quest list: the game's anchors put the modules back on a HUD scale or resolution change.
-      // 8 / 8 since 2026-10-07 (the owner: "all the way to the bottom left with a little bit of space in between either side
-      // of the screen but it needs to be further left"); 20 / 20 before
-      private var PLAYER_LEFT:Number = 8;
-      private var PLAYER_BOTTOM:Number = 8;
-      private var sqmWolf:DisplayObject;
-      private var sqmBuffs:DisplayObject;
-      private var sqmWolfSearched:int = 0;
-      private var sqmBuffsSearched:int = 0;
-
-      public function sqmSetPlayer(left:Number, bottom:Number) : void
-      {
-         this.PLAYER_LEFT = Math.max(0,left);
-         this.PLAYER_BOTTOM = Math.max(0,bottom);
-         if(this.sqmReady && stage)
-         {
-            this.sqmPlacePlayer();
-         }
-      }
-
-      // the stage box of what a module SHOWS: the union of its visible, non-empty leaves (a module's own bounds include
-      // hidden parts - the wolf head carries bars and icons that are off most of the time)
+      // the stage box of what a module SHOWS: the union of its visible, non-empty leaves (1.0.0)
       private function sqmShownBox(root:DisplayObject, depth:int, box:Rectangle) : Rectangle
       {
          var i:int = 0;
@@ -484,92 +839,7 @@
          return !box ? b : box.union(b);
       }
 
-      private function sqmMoveBox(d:DisplayObject, box:Rectangle, wantLeft:Number, wantBottom:Number) : void
-      {
-         var p:* = undefined;
-         var q:* = undefined;
-         if(Math.abs(box.left - wantLeft) < 0.5 && Math.abs(box.bottom - wantBottom) < 0.5)
-         {
-            return;
-         }
-         p = d.parent.globalToLocal(new flash.geom.Point(box.left,box.bottom));
-         q = d.parent.globalToLocal(new flash.geom.Point(wantLeft,wantBottom));
-         d.x += q.x - p.x;
-         d.y += q.y - p.y;
-      }
-
-      private function sqmPlacePlayer() : void
-      {
-         var scr:Rectangle = null;
-         var wolfBox:Rectangle = null;
-         var buffsBox:Rectangle = null;
-         if(!this.sqmReady || !stage)
-         {
-            return;
-         }
-         if(!this.sqmWolf || !this.sqmWolf.stage)
-         {
-            this.sqmWolf = null;
-            if(this.sqmWolfSearched > 40)
-            {
-               return;
-            }
-            this.sqmWolfSearched++;
-            this.sqmWolf = this.sqmFindModule(stage,"WolfHeadModule",6);
-            if(!this.sqmWolf)
-            {
-               return;
-            }
-         }
-         scr = this.sqmScreen();
-         wolfBox = this.sqmShownBox(this.sqmWolf,12,null);
-         if(!wolfBox)
-         {
-            return;
-         }
-         this.sqmMoveBox(this.sqmWolf,wolfBox,scr.left + PLAYER_LEFT,scr.bottom - PLAYER_BOTTOM);
-         wolfBox = this.sqmShownBox(this.sqmWolf,12,null);
-         if(!this.sqmBuffs || !this.sqmBuffs.stage)
-         {
-            this.sqmBuffs = null;
-            if(this.sqmBuffsSearched <= 40)
-            {
-               this.sqmBuffsSearched++;
-               this.sqmBuffs = this.sqmFindModule(stage,"BuffsModule",6);
-            }
-         }
-         if(this.sqmBuffs && wolfBox)
-         {
-            buffsBox = this.sqmShownBox(this.sqmBuffs,12,null);
-            if(buffsBox)
-            {
-               this.sqmMoveBox(this.sqmBuffs,buffsBox,wolfBox.left + this.BUFFS_DX,wolfBox.top - 6 + this.BUFFS_DY);
-            }
-         }
-      }
-
-      // the quick items (the game's "ItemInfoModule": the potions, the other consumables and the oils on the keyboard,
-      // the two potion slots on a pad, the item slot and their hints) in the screen's top left (the owner, 2026-10-07:
-      // "the quick item widget that is in the bottom left to be in the top left ... the one that has your consumables
-      // and potions, not the quick wheel"), ITEMS_LEFT / ITEMS_TOP HUD units in from the edges. Its box is every slot and
-      // hint, shown or not (the hints come and go with the radial menu and the pad - a box of only the shown parts would
-      // make the slots jump), so the hints above the slots keep their room under the screen's top edge. Re-applied with
-      // the player widget, a few times a second.
-      private var ITEMS_LEFT:Number = 8;
-      private var ITEMS_TOP:Number = 8;
-      private var sqmItems:DisplayObject;
-      private var sqmItemsSearched:int = 0;
-
-      public function sqmSetItems(left:Number, top:Number) : void
-      {
-         this.ITEMS_LEFT = Math.max(0,left);
-         this.ITEMS_TOP = Math.max(0,top);
-         if(this.sqmReady && stage)
-         {
-            this.sqmPlaceItems();
-         }
-      }
-
+      // the quick items' box: every slot and hint, shown or not, so the slots never jump when a hint appears (1.0.0)
       private function sqmItemsBox(m:DisplayObject) : Rectangle
       {
          var names:Array = ["mcItemSlot","mcPotionSlot1","mcPotionSlot2","mcKbPotion1","mcKbPotion2","mcKbPotion3",
@@ -603,194 +873,17 @@
          return box;
       }
 
-      private function sqmPlaceItems() : void
+      // after a zoom change (the Zoom setting, or the game's own interior / boat zoom): the hub map only asks for the
+      // tiles around the player when the player MOVES past a threshold (SetPlayerPosition), so a new zoom left part of
+      // the square dark until Geralt walked (2026-10-07, at 50 %). Ask for them now with the current position - the same
+      // call SetPlayerPosition makes - once the position and the world are known.
+      public function sqmRefreshTiles() : void
       {
-         var scr:Rectangle = null;
-         var box:Rectangle = null;
-         var p:* = undefined;
-         var q:* = undefined;
-         if(!this.sqmReady || !stage)
+         if(m_worldSize <= 0 || m_playerTileX < 0 || isNaN(m_playerTexturePosX) || !this.mcHubMap)
          {
             return;
          }
-         if(!this.sqmItems || !this.sqmItems.stage)
-         {
-            this.sqmItems = null;
-            if(this.sqmItemsSearched > 40)
-            {
-               return;
-            }
-            this.sqmItemsSearched++;
-            this.sqmItems = this.sqmFindModule(stage,"ItemInfoModule",6);
-            if(!this.sqmItems)
-            {
-               return;
-            }
-         }
-         box = this.sqmItemsBox(this.sqmItems);
-         if(!box)
-         {
-            return;
-         }
-         scr = this.sqmScreen();
-         if(Math.abs(box.left - scr.left - ITEMS_LEFT) < 0.5 && Math.abs(box.top - scr.top - ITEMS_TOP) < 0.5)
-         {
-            return;
-         }
-         p = this.sqmItems.parent.globalToLocal(new flash.geom.Point(box.left,box.top));
-         q = this.sqmItems.parent.globalToLocal(new flash.geom.Point(scr.left + ITEMS_LEFT,scr.top + ITEMS_TOP));
-         this.sqmItems.x += q.x - p.x;
-         this.sqmItems.y += q.y - p.y;
-      }
-
-      // =============================================================================================================
-      // Every other HUD widget, moved by the player (the owner, 2026-10-07: "make sure that each of the HUD widgets have
-      // sliders so you can change their positions, including the widget that pops up whenever you eat food ... I can
-      // just position everything where I want it myself"). Each widget has a left/right and an up/down offset in HUD
-      // units from where the game puts it (0, 0 = the game's place). The game re-anchors its modules (resolution, HUD
-      // scale, some modules on show), so the game's own position is re-read whenever the module stands somewhere other
-      // than where the offset last put it, and the offset is added to that. Only widgets with an offset are looked at,
-      // once a frame (a few property reads each); one set back to 0, 0 is returned to the game's place and dropped.
-      // The buffs (BuffsModule: food, potions, oils...) keep their place above the player widget plus BUFFS_DX / _DY.
-      // HUDPositionManager.ws hands everything in through sqmSetOffsets as "Name:dx:dy;Name:dx:dy;...".
-      // =============================================================================================================
-      private var BUFFS_DX:Number = 0;
-      private var BUFFS_DY:Number = 0;
-      private var sqmOffsets:Object = {};
-      private var sqmOffsetCount:int = 0;
-
-      public function sqmSetOffsets(spec:String) : void
-      {
-         var parts:Array = !spec ? [] : spec.split(";");
-         var seen:Object = {};
-         var i:int = 0;
-         var f:Array = null;
-         var name:String = null;
-         var dx:Number = NaN;
-         var dy:Number = NaN;
-         var o:Object = null;
-         var k:String = null;
-         while(i < parts.length)
-         {
-            f = String(parts[i]).split(":");
-            i++;
-            if(f.length != 3)
-            {
-               continue;
-            }
-            name = f[0];
-            dx = Number(f[1]);
-            dy = Number(f[2]);
-            if(isNaN(dx) || isNaN(dy))
-            {
-               continue;
-            }
-            if(name == "BuffsModule")
-            {
-               this.BUFFS_DX = dx;
-               this.BUFFS_DY = dy;
-               continue;
-            }
-            seen[name] = true;
-            o = this.sqmOffsets[name];
-            if(dx == 0 && dy == 0)
-            {
-               if(o)
-               {
-                  this.sqmOffsetReset(o);
-                  delete this.sqmOffsets[name];
-               }
-               continue;
-            }
-            if(!o)
-            {
-               o = {"name":name,"m":null,"searched":0,"lastX":NaN,"lastY":NaN,"baseX":NaN,"baseY":NaN};
-               this.sqmOffsets[name] = o;
-            }
-            o.dx = dx;
-            o.dy = dy;
-            o.lastX = NaN;   // applies the new offset on the next frame
-         }
-         for(k in this.sqmOffsets)
-         {
-            if(!seen[k])
-            {
-               this.sqmOffsetReset(this.sqmOffsets[k]);
-               delete this.sqmOffsets[k];
-            }
-         }
-         this.sqmOffsetCount = 0;
-         for(k in this.sqmOffsets)
-         {
-            this.sqmOffsetCount++;
-         }
-         if(this.sqmReady && stage)
-         {
-            this.sqmPlacePlayer();
-         }
-      }
-
-      private function sqmOffsetReset(o:Object) : void
-      {
-         var m:DisplayObject = o.m as DisplayObject;
-         if(m && m.stage && !isNaN(o.baseX) && m.x == o.lastX && m.y == o.lastY)
-         {
-            m.x = o.baseX;
-            m.y = o.baseY;
-         }
-      }
-
-      private function sqmApplyOffsets() : void
-      {
-         var o:Object = null;
-         var m:DisplayObject = null;
-         var a:* = undefined;
-         var b:* = undefined;
-         for each(o in this.sqmOffsets)
-         {
-            m = o.m as DisplayObject;
-            if(!m || !m.stage)
-            {
-               o.m = null;
-               if(o.searched > 40)
-               {
-                  continue;
-               }
-               o.searched++;
-               m = this.sqmFindModule(stage,o.name,6);
-               if(!m)
-               {
-                  continue;
-               }
-               o.m = m;
-               o.lastX = NaN;
-            }
-            if(m.x == o.lastX && m.y == o.lastY)
-            {
-               continue;
-            }
-            if(!m.parent)
-            {
-               continue;
-            }
-            if(isNaN(o.lastX) && !isNaN(o.baseX) && m.x == o.baseX + o.appliedX && m.y == o.baseY + o.appliedY)
-            {
-               // a new offset for a module we already moved: start from the game's place, not from our last one
-               m.x = o.baseX;
-               m.y = o.baseY;
-            }
-            o.baseX = m.x;
-            o.baseY = m.y;
-            // HUD units -> the module's parent units (the HUD scale can scale the parent)
-            a = m.parent.globalToLocal(new flash.geom.Point(0,0));
-            b = m.parent.globalToLocal(new flash.geom.Point(o.dx,o.dy));
-            o.appliedX = b.x - a.x;
-            o.appliedY = b.y - a.y;
-            m.x = o.baseX + o.appliedX;
-            m.y = o.baseY + o.appliedY;
-            o.lastX = m.x;
-            o.lastY = m.y;
-         }
+         this.mcHubMap.mcHubMapContainer.UpdatePosition(m_radius,m_playerTexturePosX,m_playerTexturePosY);
       }
 
       // the north mark turns round the map's centre at the circle's radius; on a square its distance from the centre is
