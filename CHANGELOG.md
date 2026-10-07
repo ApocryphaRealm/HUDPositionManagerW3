@@ -90,7 +90,9 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
     set to hide or to show on demand).
   - The toxicity skull did not come back after Hide was switched off (its pieces were left see-through; only the sign
     badge's were restored). The parts now hide and show as a whole.
-  - Eleven languages: 101 keys.
+  - The experience (level) bar is a part of its own too, "Experience bar" (the owner, 2026-10-07: it stayed behind
+    when the health bar moved - "give it its own widget as well").
+  - Eleven languages: 102 keys.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 

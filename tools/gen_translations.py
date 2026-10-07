@@ -248,6 +248,9 @@ row("HPM_El_Medallion", "Medallion",
 row("HPM_El_Health", "Health bar",
     "Lebensleiste", "Barre de vie", "Barra de vida", "Barra della salute", "Pasek zdrowia", "Ukazatel zdraví",
     "Полоса здоровья", "体力バー", "체력 바", "生命值条")
+row("HPM_El_Experience", "Experience bar",
+    "Erfahrungsleiste", "Barre d'expérience", "Barra de experiencia", "Barra dell'esperienza", "Pasek doświadczenia",
+    "Ukazatel zkušeností", "Полоса опыта", "経験値バー", "경험치 바", "经验条")
 row("HPM_WolfPartHint",
     "One part of the player widget, on its own: it moves, sizes and hides by itself. Pick it on the Combined widgets tab to move it together with other parts or widgets.",
     "Ein Teil der Spieleranzeige, für sich allein: Er wird einzeln verschoben, skaliert und ausgeblendet. Wähle ihn im Tab Kombinierte Anzeigen, um ihn zusammen mit anderen Teilen oder Anzeigen zu bewegen.",

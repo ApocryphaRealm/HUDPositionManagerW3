@@ -48,6 +48,9 @@ namespace elements
 			// individual parts"), each an element of its own, moved, sized and shown in hud_wolfstatbars
 			{ .key = "Medallion", .english = "Medallion", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			{ .key = "Health", .english = "Health bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true },
+			// the level (experience) bar (the owner, 2026-10-07: "The level bar doesn't have a widget and it's currently out of
+			// sync with the health bar, so I guess give it its own widget as well")
+			{ .key = "Experience", .english = "Experience bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true },
 			{ .key = "Stamina", .english = "Stamina bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
 			{ .key = "Adrenaline", .english = "Adrenaline bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
 			{ .key = "Toxicity", .english = "Toxicity bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },

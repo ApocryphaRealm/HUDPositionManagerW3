@@ -173,6 +173,7 @@
          this.hpmWrap(4,[this.mcSkullBck,this.mcSkull]);
          this.hpmWrap(5,[this.mcBckCircle,this.mcWolfsHead,this.mcNewLevelIndcator,this.mcMutationFeedback]);
          this.hpmWrap(6,[this.mcHealthBar]);
+         this.hpmWrap(7,[this.mcExperienceBar]);
          this.hpmApplyParts();
          i = 0;
          while(i < 3)
@@ -278,8 +279,8 @@
       // ==============================================================================================================
       // The player widget broken up into its parts (the owner, 2026-10-07: "the player widget is a combined widget which
       // should be broken up into its individual parts, not as a single widget that can be added to the combined widget").
-      // Each part is an element of the layout on its own: the medallion, the health bar, the stamina, adrenaline and
-      // toxicity bars, the sign badge and the toxicity skull. Each takes a move (percent of the screen), a size (about its
+      // Each part is an element of the layout on its own: the medallion, the health bar, the experience (level) bar, the
+      // stamina, adrenaline and toxicity bars, the sign badge and the toxicity skull. Each takes a move (percent of the screen), a size (about its
       // own centre), a length and height (the bars), Hide, Show (always / only in combat / only out of combat), Always
       // visible, Move with another widget or part, and the Combined widgets group - on top of where hpmBarsInit puts it,
       // inside the widget, which the minimap movie starts in the bottom left corner. The bars are our own sprites; each
@@ -292,11 +293,11 @@
       // HUDPositionManager.ws hands the whole layout string in through hpmSetLayout (the same string as the minimap's)
       // and combat through hpmSetCombat, and reads hpmReport (each part's box, for the page's slider ranges).
       // ==============================================================================================================
-      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Medallion","Health"];
+      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Medallion","Health","Experience"];
       private var hpmRowBase:Array = [];      // [x, y] per bar, from hpmBarsInit
-      private var hpmBoxes:Array = [null,null,null,null,null,null,null];   // the containers of parts 3..6
-      private var hpmBoxC:Array = [null,null,null,null,null,null,null];    // each container's centre at rest (this widget's units)
-      private var hpmParts:Array = [null,null,null,null,null,null,null];
+      private var hpmBoxes:Array = [null,null,null,null,null,null,null,null];   // the containers of parts 3..7
+      private var hpmBoxC:Array = [null,null,null,null,null,null,null,null];    // each container's centre at rest (this widget's units)
+      private var hpmParts:Array = [null,null,null,null,null,null,null,null];
       private var hpmOff:Object = {};          // every element's move and group membership, by key ("Move with")
       private var hpmPartsOn:Boolean = true;   // "Apply my layout"
       private var hpmAllAlways:Boolean = false;   // the page's "Always visible" for the whole HUD

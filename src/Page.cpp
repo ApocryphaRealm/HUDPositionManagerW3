@@ -151,6 +151,7 @@ namespace page
 			if (k == "Quests") return TR("HPM_El_Quests", "Quest list");
 			if (k == "Medallion") return TR("HPM_El_Medallion", "Medallion");
 			if (k == "Health") return TR("HPM_El_Health", "Health bar");
+			if (k == "Experience") return TR("HPM_El_Experience", "Experience bar");
 			if (k == "Stamina") return TR("HPM_El_Stamina", "Stamina bar");
 			if (k == "Adrenaline") return TR("HPM_El_Adrenaline", "Adrenaline bar");
 			if (k == "Toxicity") return TR("HPM_El_Toxicity", "Toxicity bar");
