@@ -134,25 +134,33 @@
             i++;
          }
          y = fill.bottom + gap * 1.6;
+         // the badges (the owner, 2026-10-07): the sign badge to the LEFT of the adrenaline bar, where the game has it;
+         // the skull badge at the toxicity bar's left end, and that bar starts just right of it - its right end stays
+         // where its length puts it, so it is still a little shorter than the bar above. The two badges sit on
+         // neighbouring rows but side by side (sign left of the bars' start, skull right of it), so they never overlap.
+         this.hpmPlaceBadge(this.mcSignSlot,[this.mcSignSlot,this.mSignReady,this.mcSignText],left - 3,y + (t + gap) + t / 2,1);
+         this.hpmPlaceBadge(this.mcSkullBck || this.mcSkull,[this.mcSkullBck,this.mcSkull],left,y + (t + gap) * 2 + t / 2,2);
+         tox = !(this.mcSkullBck || this.mcSkull) ? null : DisplayObject(this.mcSkullBck || this.mcSkull).getBounds(this);
          i = 0;
          while(i < 3)
          {
-            row = this.hpmMakeBar(HPM_COLOURS[i],lens[i],t,i == 1);
-            row.x = left;
+            row = null;
+            if(i == 2 && tox && tox.right + 2 < left + lens[i] - t * 3)
+            {
+               row = this.hpmMakeBar(HPM_COLOURS[i],left + lens[i] - (tox.right + 2),t,false);
+               row.x = tox.right + 2;
+            }
+            else
+            {
+               row = this.hpmMakeBar(HPM_COLOURS[i],lens[i],t,i == 1);
+               row.x = left;
+            }
             row.y = y + (t + gap) * i;
-            addChild(row);
+            addChildAt(row,getChildIndex(this.mcHealthBar));
             this.hpmRows.push(row);
             i++;
          }
          this.hpmHideRound();
-         // the skull badge at the toxicity bar's left end (it overlaps the bar's start, as the game draws it), the sign
-         // badge beside it under the medallion
-         this.hpmPlaceBadge(this.mcSkullBck || this.mcSkull,[this.mcSkullBck,this.mcSkull],left,y + (t + gap) * 2 + t / 2);
-         if(this.mcSkullBck || this.mcSkull)
-         {
-            tox = DisplayObject(this.mcSkullBck || this.mcSkull).getBounds(this);
-            this.hpmPlaceBadge(this.mcSignSlot,[this.mcSignSlot,this.mSignReady,this.mcSignText],tox.left - tox.width / 2 - 3,tox.top + tox.height / 2);
-         }
          i = 0;
          while(i < 3)
          {
@@ -175,8 +183,9 @@
          return (!fill ? bar : fill).getBounds(this);
       }
 
-      // moves every object in list by the step that puts key's centre at (cx, cy)
-      private function hpmPlaceBadge(key:DisplayObject, list:Array, cx:Number, cy:Number) : void
+      // moves every object in list by the step that puts key's centre at (x, cy) - mode 1: its right edge at x, mode 2: its
+      // left edge at x
+      private function hpmPlaceBadge(key:DisplayObject, list:Array, x:Number, cy:Number, mode:int = 0) : void
       {
          var s:Rectangle = null;
          var dx:Number = NaN;
@@ -187,7 +196,15 @@
             return;
          }
          s = key.getBounds(this);
-         dx = cx - (s.left + s.width / 2);
+         if(mode == 1)
+         {
+            x -= s.width / 2;
+         }
+         else if(mode == 2)
+         {
+            x += s.width / 2;
+         }
+         dx = x - (s.left + s.width / 2);
          dy = cy - (s.top + s.height / 2);
          i = 0;
          while(i < list.length)
