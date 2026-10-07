@@ -35,9 +35,9 @@ namespace elements
 	{
 		static const std::vector<Element> kAll{
 			// the minimap: square, flush in the screen's top right corner by default (Square Minimap 1.0.0)
-			{ .key = "Minimap", .english = "Minimap", .module = "Minimap2Module", .placeKey = "HPM_PlaceTopRight", .placeEnglish = "Top right corner", .placeDefault = true },
+			{ .key = "Minimap", .english = "Minimap", .module = "Minimap2Module", .fades = true, .placeKey = "HPM_PlaceTopRight", .placeEnglish = "Top right corner", .placeDefault = true },
 			// the quest list, centred under the minimap by default
-			{ .key = "Quests", .english = "Quest list", .module = "QuestsModule", .placeKey = "HPM_PlaceUnderMinimap", .placeEnglish = "Under the minimap", .placeDefault = true },
+			{ .key = "Quests", .english = "Quest list", .module = "QuestsModule", .fades = true, .placeKey = "HPM_PlaceUnderMinimap", .placeEnglish = "Under the minimap", .placeDefault = true },
 			// the player widget: medallion, vitality and the bars under it; bottom left by default (the owner, 2026-10-07)
 			{ .key = "Player", .english = "Player widget", .module = "WolfHeadModule", .fades = true, .placeKey = "HPM_PlaceBottomLeft", .placeEnglish = "Bottom left corner", .placeDefault = true },
 			// its parts, drawn by this mod in hud_wolfstatbars (moved inside the widget, on top of the widget's own place)
@@ -47,16 +47,16 @@ namespace elements
 			{ .key = "Sign", .english = "Sign badge", .module = nullptr, .movie = Movie::kWolf },
 			{ .key = "Skull", .english = "Toxicity skull", .module = nullptr, .movie = Movie::kWolf },
 			// the effects (food, potions, oils): just above the player widget by default
-			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget", .placeDefault = true },
+			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .fades = true, .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget", .placeDefault = true },
 			{ .key = "QuickItems", .english = "Quick items", .module = "ItemInfoModule", .fades = true, .placeKey = "HPM_PlaceTopLeft", .placeEnglish = "Top left corner", .placeDefault = true },
 			// the dialogue choice list, in hud_dialog: its longest line ends a small gap from the right edge by default
 			{ .key = "Dialogue", .english = "Dialogue choices", .module = nullptr, .movie = Movie::kDialog, .placeKey = "HPM_PlaceRightEdge", .placeEnglish = "At the right edge", .placeDefault = true },
-			{ .key = "Subtitles", .english = "Subtitles", .module = "SubtitlesModule" },
-			{ .key = "Messages", .english = "Messages", .module = "MessageModule" },
-			{ .key = "Hints", .english = "Button hints", .module = "ControlsFeedbackModule" },
-			{ .key = "Area", .english = "Area name", .module = "AreaInfoModule" },
-			{ .key = "Journal", .english = "Quest and journal updates", .module = "JournalUpdateModule" },
-			{ .key = "LootFeed", .english = "Items received", .module = "LootFeedModule" },
+			{ .key = "Subtitles", .english = "Subtitles", .module = "SubtitlesModule", .fades = true },
+			{ .key = "Messages", .english = "Messages", .module = "MessageModule", .fades = true },
+			{ .key = "Hints", .english = "Button hints", .module = "ControlsFeedbackModule", .fades = true },
+			{ .key = "Area", .english = "Area name", .module = "AreaInfoModule", .fades = true },
+			{ .key = "Journal", .english = "Quest and journal updates", .module = "JournalUpdateModule", .fades = true },
+			{ .key = "LootFeed", .english = "Items received", .module = "LootFeedModule", .fades = true },
 			{ .key = "Enemy", .english = "Enemy health", .module = "EnemyFocusModule", .fades = true },
 			{ .key = "Boss", .english = "Boss health", .module = "BossFocusModule", .fades = true },
 			{ .key = "Companion", .english = "Companion health", .module = "CompanionModule", .fades = true },
@@ -64,9 +64,9 @@ namespace elements
 			{ .key = "HorseStamina", .english = "Horse stamina", .module = "HorseStaminaBarModule", .fades = true },
 			{ .key = "HorseFear", .english = "Horse fear", .module = "HorsePanicBarModule", .fades = true },
 			{ .key = "Boat", .english = "Boat health", .module = "BoatHealthModule", .fades = true },
-			{ .key = "Damaged", .english = "Damaged gear", .module = "DamagedItemsModule" },
-			{ .key = "TimeLeft", .english = "Time limit", .module = "TimeLeftModule" },
-			{ .key = "TimeLapse", .english = "Passing time text", .module = "TimeLapseModule" },
+			{ .key = "Damaged", .english = "Damaged gear", .module = "DamagedItemsModule", .fades = true },
+			{ .key = "TimeLeft", .english = "Time limit", .module = "TimeLeftModule", .fades = true },
+			{ .key = "TimeLapse", .english = "Passing time text", .module = "TimeLapseModule", .fades = true },
 		};
 		return kAll;
 	}
