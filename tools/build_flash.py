@@ -37,9 +37,9 @@ SWF_REL = os.path.join("r4data", SWF_DIR, SWF_NAME + ".swf")
 OURS = os.path.join("flash", "sqm_module.as.txt")
 DEPOT_OUT = "sqm_build"   # a folder of ours inside REDkit's workspace, removed after the build
 
-IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display.GradientType;\n   import flash.display.Shape;\n"
+IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display.DisplayObjectContainer;\n   import flash.display.GradientType;\n   import flash.display.Shape;\n"
            "   import flash.display.Sprite;\n   import flash.events.Event;\n   import flash.geom.Matrix;\n"
-           "   import flash.geom.Rectangle;\n   ")
+           "   import flash.geom.Rectangle;\n   import flash.text.TextField;\n   ")
 
 # (anchor, text inserted, where): every anchor must occur exactly once in FFDec's decompiled class
 HOOKS = [

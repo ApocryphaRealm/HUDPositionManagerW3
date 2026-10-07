@@ -166,12 +166,32 @@
          {
             this.sqmPlaceNorth();
          }
+         // the quest list: a few times a second (its content changes, the game's anchors can move it)
+         this.sqmFrameCount++;
+         if(this.sqmFrameCount >= 10)
+         {
+            this.sqmFrameCount = 0;
+            this.sqmPlaceQuests();
+         }
+      }
+
+      // the visible screen (the game's own helper: Scaleform's visibleRect - the stage can reach past the screen's edges,
+      // which cut the frame off in the first build: the owner, 2026-10-06 "slightly out of frame")
+      private function sqmScreen() : Rectangle
+      {
+         var r:Rectangle = CommonUtils.getScreenRect();
+         if(!r || r.width <= 0)
+         {
+            r = new Rectangle(0,0,stage.stageWidth,stage.stageHeight);
+         }
+         return r;
       }
 
       private function sqmPlace() : void
       {
+         var scr:Rectangle = this.sqmScreen();
          var corner:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
-         var target:* = new flash.geom.Point(stage.stageWidth,0);
+         var target:* = new flash.geom.Point(scr.right - SQM_EDGE_RIGHT,scr.top + SQM_EDGE_TOP);
          var a:* = parent.globalToLocal(corner);
          var b:* = parent.globalToLocal(target);
          this.x += b.x - a.x;
@@ -179,6 +199,189 @@
          this.sqmLastX = this.x;
          this.sqmLastY = this.y;
          this.sqmLastW = stage.stageWidth;
+         this.sqmPlaceQuests();
+      }
+
+      // the quest list directly underneath the square (the owner, 2026-10-06: "I want the quests area moved directly
+      // underneath the minimap"). It is the game's own module "QuestsModule" in its own movie: found once by name in the
+      // HUD's display tree, then moved so the top of what it shows sits a small gap below the square's frame.
+      private var sqmFrameCount:int = 0;
+      private var sqmQuests:DisplayObject;
+      private var sqmQuestsSearched:int = 0;
+      // the square's distance from the screen's top and right edges and the gap above the quest list, in the HUD's
+      // units. The owner, 2026-10-06, after the first builds: "move the minimap out from both sides until the frame is
+      // shown and the quest widget is clearly visible" - defaults 20 / 20 / 8, and a settings page to tune them
+      // (SquareMinimap.ws passes them in through sqmSetSettings)
+      private var SQM_EDGE_TOP:Number = 20;
+      private var SQM_EDGE_RIGHT:Number = 20;
+      private var SQM_QUEST_GAP:Number = 8;
+
+      public function sqmSetSettings(top:Number, right:Number, gap:Number) : void
+      {
+         this.SQM_EDGE_TOP = Math.max(0,top);
+         this.SQM_EDGE_RIGHT = Math.max(0,right);
+         this.SQM_QUEST_GAP = Math.max(0,gap);
+         if(this.sqmReady && stage && parent)
+         {
+            this.sqmPlace();
+         }
+      }
+
+      private function sqmFindModule(root:DisplayObjectContainer, wanted:String, depth:int) : DisplayObject
+      {
+         var i:int = 0;
+         var d:DisplayObject = null;
+         var found:DisplayObject = null;
+         if(!root || depth < 0)
+         {
+            return null;
+         }
+         i = 0;
+         while(i < root.numChildren)
+         {
+            d = root.getChildAt(i);
+            try
+            {
+               if(d.hasOwnProperty("moduleName") && Object(d).moduleName == wanted)
+               {
+                  return d;
+               }
+            }
+            catch(err:Error)
+            {
+            }
+            if(d is DisplayObjectContainer)
+            {
+               found = this.sqmFindModule(DisplayObjectContainer(d),wanted,depth - 1);
+               if(found)
+               {
+                  return found;
+               }
+            }
+            i++;
+         }
+         return null;
+      }
+
+      // the box of what the quest list SHOWS, in stage space: every visible, non-empty text line (TextField line metrics,
+      // so a wide right- or centre-aligned field counts only its text). The module's own bounds start well above the
+      // title and are wider than the text - the owner wants the text itself directly underneath, centred.
+      private var sqmBoxL:Number;
+      private var sqmBoxR:Number;
+      private var sqmBoxT:Number;
+
+      private function sqmTextBox(root:DisplayObjectContainer, depth:int) : void
+      {
+         var i:int = 0;
+         var n:int = 0;
+         var d:DisplayObject = null;
+         var tf:TextField = null;
+         var m:* = undefined;
+         var y:Number = 2;
+         var a:* = undefined;
+         var b:* = undefined;
+         if(!root || depth < 0 || !root.visible)
+         {
+            return;
+         }
+         i = 0;
+         while(i < root.numChildren)
+         {
+            d = root.getChildAt(i);
+            if(d.visible)
+            {
+               if(d is TextField)
+               {
+                  tf = TextField(d);
+                  if(tf.text.length > 0)
+                  {
+                     y = 2;
+                     n = 0;
+                     while(n < tf.numLines)
+                     {
+                        m = tf.getLineMetrics(n);
+                        if(m.width > 0)
+                        {
+                           a = tf.localToGlobal(new flash.geom.Point(m.x,y));
+                           b = tf.localToGlobal(new flash.geom.Point(m.x + m.width,y));
+                           if(isNaN(this.sqmBoxL) || a.x < this.sqmBoxL)
+                           {
+                              this.sqmBoxL = a.x;
+                           }
+                           if(isNaN(this.sqmBoxR) || b.x > this.sqmBoxR)
+                           {
+                              this.sqmBoxR = b.x;
+                           }
+                           if(isNaN(this.sqmBoxT) || a.y < this.sqmBoxT)
+                           {
+                              this.sqmBoxT = a.y;
+                           }
+                        }
+                        y += m.height;
+                        n++;
+                     }
+                  }
+               }
+               else if(d is DisplayObjectContainer)
+               {
+                  this.sqmTextBox(DisplayObjectContainer(d),depth - 1);
+               }
+            }
+            i++;
+         }
+      }
+
+      private function sqmPlaceQuests() : void
+      {
+         var bottom:* = undefined;
+         var centre:* = undefined;
+         var wantY:Number = NaN;
+         var wantX:Number = NaN;
+         var p:* = undefined;
+         var q:* = undefined;
+         if(!this.sqmReady || !stage)
+         {
+            return;
+         }
+         if(!this.sqmQuests || !this.sqmQuests.stage)
+         {
+            this.sqmQuests = null;
+            if(this.sqmQuestsSearched > 40)
+            {
+               return;
+            }
+            this.sqmQuestsSearched++;
+            this.sqmQuests = this.sqmFindModule(stage,"QuestsModule",6);
+            if(!this.sqmQuests)
+            {
+               return;
+            }
+         }
+         this.sqmBoxL = NaN;
+         this.sqmBoxR = NaN;
+         this.sqmBoxT = NaN;
+         this.sqmTextBox(DisplayObjectContainer(this.sqmQuests),12);
+         if(isNaN(this.sqmBoxT))
+         {
+            return;
+         }
+         // directly underneath the square, centred on it (the owner, 2026-10-06: "centered beneath the minimap")
+         bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
+         wantY = bottom.y + SQM_QUEST_GAP;
+         wantX = bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2;
+         // never past the screen's right edge (a line wider than the square still shows whole)
+         if(wantX + (this.sqmBoxR - this.sqmBoxL) > this.sqmScreen().right - SQM_EDGE_RIGHT)
+         {
+            wantX = this.sqmScreen().right - SQM_EDGE_RIGHT - (this.sqmBoxR - this.sqmBoxL);
+         }
+         if(Math.abs(this.sqmBoxT - wantY) < 0.5 && Math.abs(this.sqmBoxL - wantX) < 0.5)
+         {
+            return;
+         }
+         p = this.sqmQuests.parent.globalToLocal(new flash.geom.Point(this.sqmBoxL,this.sqmBoxT));
+         q = this.sqmQuests.parent.globalToLocal(new flash.geom.Point(wantX,wantY));
+         this.sqmQuests.x += q.x - p.x;
+         this.sqmQuests.y += q.y - p.y;
       }
 
       // the north mark turns round the map's centre at the circle's radius; on a square its distance from the centre is
