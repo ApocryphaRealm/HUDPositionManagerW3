@@ -17,6 +17,12 @@ if ($version -notmatch '^\d+\.\d+\.\d+$' -or $version -eq '0.0.0') { throw "VERS
 
 & python -I (Join-Path $PSScriptRoot 'gen_strings.py') --check
 if ($LASTEXITCODE -ne 0) { throw 'gen_strings.py --check failed - the package is not built' }
+# the AMF page's eleven languages (bin\x64_dx12\AMF\Translations, rule 66): every TR key in every language
+& python -I (Join-Path $PSScriptRoot 'gen_translations.py') --check
+if ($LASTEXITCODE -ne 0) { throw 'gen_translations.py --check failed - the package is not built' }
+foreach ($f in 'bin\x64_dx12\HUDPositionManager.asi', 'bin\x64_dx12\AMF\Translations\HUDPositionManager_english.txt') {
+    if (-not (Test-Path -LiteralPath (Join-Path $repo "dist\$f"))) { throw "dist\$f is missing - build the page (xmake) and run tools\gen_translations.py" }
+}
 $content = Join-Path $repo 'dist\Mods\modHUDPositionManager\content'
 foreach ($f in 'blob0.bundle', 'metadata.store') {
     if (-not (Test-Path -LiteralPath (Join-Path $content $f))) { throw "$f is missing - run tools\build_flash.py first" }
