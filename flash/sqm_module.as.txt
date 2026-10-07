@@ -12,6 +12,7 @@
       private var sqmMaskInterior:Sprite;
       private var sqmMaskShading:Sprite;
       private var sqmFrame:Sprite;
+      private var sqmLine:Sprite;
       private var sqmRing:DisplayObject;
       private var sqmNorthRotation:Number = NaN;
       private var sqmLastX:Number = NaN;
@@ -19,7 +20,7 @@
       private var sqmLastW:Number = NaN;
 
       // the ring art's colours (image 481 of the game's movie): a copper line and a dark plate lighter at the bottom
-      private static const SQM_LINE_COLOR:uint = 0xE4B186;
+      private static const SQM_LINE_COLOR:uint = 0xC99A72;
       private static const SQM_LINE_ALPHA:Number = 0.72;
       private static const SQM_LINE_WIDTH:Number = 2;
 
@@ -59,17 +60,26 @@
       private function sqmDrawFrame() : void
       {
          var g:* = this.sqmFrame.graphics;
-         var r:Rectangle = this.sqmFrameRect;
+         var r:Rectangle = this.sqmRect;
          var m:Matrix = new Matrix();
+         var lw:Number = SQM_LINE_WIDTH;
          g.clear();
-         // the plate: dark, lighter towards the bottom, as the ring art's disc
+         // the plate, only under the map (shows where a city map has no tile): dark, lighter towards the bottom
          m.createGradientBox(r.width,r.height,Math.PI / 2,r.x,r.y);
          g.beginGradientFill(GradientType.LINEAR,[0x000000,0x181818,0x8F8F8F],[1,1,1],[0,128,255],m);
          g.drawRect(r.x,r.y,r.width,r.height);
          g.endFill();
-         // the copper line along the square's outer edge
-         g.lineStyle(SQM_LINE_WIDTH,SQM_LINE_COLOR,SQM_LINE_ALPHA,true);
-         g.drawRect(r.x + SQM_LINE_WIDTH / 2,r.y + SQM_LINE_WIDTH / 2,r.width - SQM_LINE_WIDTH,r.height - SQM_LINE_WIDTH);
+         // the copper line: four solid, opaque bands just outside the map, drawn ABOVE it - the same width and colour
+         // on every side (the owner, 2026-10-06: the line was thicker and a different colour on two sides - it was a
+         // see-through stroke over the plate's gradient, and the plate showed round the map unevenly)
+         g = this.sqmLine.graphics;
+         g.clear();
+         g.beginFill(SQM_LINE_COLOR,1);
+         g.drawRect(r.x - lw,r.y - lw,r.width + 2 * lw,lw);
+         g.drawRect(r.x - lw,r.bottom,r.width + 2 * lw,lw);
+         g.drawRect(r.x - lw,r.y,lw,r.height);
+         g.drawRect(r.right,r.y,lw,r.height);
+         g.endFill();
       }
 
       public function sqmInit() : void
@@ -87,7 +97,7 @@
          // the frame is the square grown by the line's width on every side, so the line shows evenly all round (the
          // ring art is not centred on the map: its line was thick on two sides and covered on the top and right)
          this.sqmFrameRect = this.sqmRect.clone();
-         this.sqmFrameRect.inflate(SQM_LINE_WIDTH,SQM_LINE_WIDTH);
+         this.sqmFrameRect.inflate(SQM_LINE_WIDTH,SQM_LINE_WIDTH);   // the line's outer edge
          this.sqmMaskCommon = this.sqmSquare(this.sqmRect);
          this.sqmMaskHub = this.sqmSquare(this.sqmRect);
          this.sqmMaskInterior = this.sqmSquare(this.sqmRect);
@@ -97,6 +107,8 @@
          addChild(this.sqmMaskInterior);
          addChild(this.sqmMaskShading);
          this.sqmFrame = new Sprite();
+         this.sqmLine = new Sprite();
+         this.sqmLine.mouseEnabled = false;
          this.sqmFrame.mouseEnabled = false;
          this.sqmFrame.mouseChildren = false;
          this.sqmDrawFrame();
@@ -109,6 +121,7 @@
          {
             addChildAt(this.sqmFrame,0);
          }
+         addChild(this.sqmLine);
          // the edge fade: the game's round shading clip, grown to cover the square's corners and cut square
          if(this.mcShading)
          {
@@ -281,6 +294,7 @@
          var m:* = undefined;
          var y:Number = 2;
          var a:* = undefined;
+         var fb:Rectangle = null;
          var b:* = undefined;
          if(!root || depth < 0 || !root.visible)
          {
@@ -297,6 +311,17 @@
                   tf = TextField(d);
                   if(tf.text.length > 0)
                   {
+                     // across: the text box itself - the game wraps its text inside it, so no line reaches past it
+                     // (line metrics under-measured a long objective line, which then ran off the screen)
+                     fb = tf.getBounds(stage);
+                     if(isNaN(this.sqmBoxL) || fb.left < this.sqmBoxL)
+                     {
+                        this.sqmBoxL = fb.left;
+                     }
+                     if(isNaN(this.sqmBoxR) || fb.right > this.sqmBoxR)
+                     {
+                        this.sqmBoxR = fb.right;
+                     }
                      y = 2;
                      n = 0;
                      while(n < tf.numLines)
@@ -305,15 +330,6 @@
                         if(m.width > 0)
                         {
                            a = tf.localToGlobal(new flash.geom.Point(m.x,y));
-                           b = tf.localToGlobal(new flash.geom.Point(m.x + m.width,y));
-                           if(isNaN(this.sqmBoxL) || a.x < this.sqmBoxL)
-                           {
-                              this.sqmBoxL = a.x;
-                           }
-                           if(isNaN(this.sqmBoxR) || b.x > this.sqmBoxR)
-                           {
-                              this.sqmBoxR = b.x;
-                           }
                            if(isNaN(this.sqmBoxT) || a.y < this.sqmBoxT)
                            {
                               this.sqmBoxT = a.y;
