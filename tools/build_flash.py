@@ -8,7 +8,7 @@ The pipeline of Simple Loadout System W3's tools/build_flash.py (same author):
    the hook lines below, each at an anchor that must be found exactly once (else the build stops);
 3. recompiles that class into the movie (FFDec -importScript);
 4. REDkit's wcc_lite: swfimport (movie -> .redswf), pack (-> blob0.bundle) and metadatastore, into
-   dist\\Mods\\modSquareMinimap\\content - this mod's own bundle.
+   dist\\Mods\\modHUDPositionManager\\content - this mod's own bundle.
 
 Only our own code is kept in the repository; CD PROJEKT RED's movie and its decompiled class are read from the player's
 REDkit install at build time and never committed. wcc_lite runs with -agreetoterms (the owner accepted the Witcher III
@@ -27,7 +27,7 @@ import winreg
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(REPO, "build", "flash")
-CONTENT = os.path.join(REPO, "dist", "Mods", "modSquareMinimap", "content")
+CONTENT = os.path.join(REPO, "dist", "Mods", "modHUDPositionManager", "content")
 CLASS = "red.game.witcher3.hud.modules.HudModuleMinimap2"
 CLASS_FILE = "HudModuleMinimap2.as"
 CLASS_REL = os.path.join("red", "game", "witcher3", "hud", "modules", CLASS_FILE)

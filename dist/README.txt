@@ -1,6 +1,6 @@
 Witcher III Modding Tool, developed and released by CD PROJEKT RED
 
-Square Minimap (The Witcher 3: Wild Hunt - Remastered)
+HUD Position Manager (The Witcher 3: Wild Hunt - Remastered)
 Version 0.0.0
 
 The game's own minimap, square: the same map, pins, zoom and rotation, cut square instead of round, framed with the
@@ -8,7 +8,7 @@ game's ring art drawn as a square, and sitting flush in the top right corner of 
 stay to the left of it, the quest list centred underneath it.
 
 SETTINGS
-Options > Mods > Square Minimap (also a page in Apocrypha Menu Framework):
+Options > Mods > HUD Position Manager (also a page in Apocrypha Menu Framework):
 - Distance from the top (default 4) and from the right (default 4) - the gap between the square and the screen's edge.
   The square moves further in from the right when the quest list centred under it needs the room.
 - Gap above the quest list (default 8).

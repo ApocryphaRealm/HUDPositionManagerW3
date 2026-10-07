@@ -1,6 +1,6 @@
 
       // ==============================================================================================================
-      // Square Minimap (the owner, 2026-10-06): the game's own minimap, square, framed with its own ring art squared,
+      // HUD Position Manager (the owner, 2026-10-06): the game's own minimap, square, framed with its own ring art squared,
       // flush in the screen's top right corner. Inserted into HudModuleMinimap2 by tools/build_flash.py.
       // ==============================================================================================================
 
@@ -178,6 +178,7 @@
          {
             this.sqmFrameCount = 0;
             this.sqmPlaceQuests();
+            this.sqmPlacePlayer();
          }
       }
 
@@ -222,7 +223,7 @@
       // the square's distance from the screen's top and right edges and the gap above the quest list, in the HUD's
       // units. The owner, 2026-10-06, after the first builds: "move the minimap out from both sides until the frame is
       // shown and the quest widget is clearly visible" - defaults 20 / 20 / 8, and a settings page to tune them
-      // (SquareMinimap.ws passes them in through sqmSetSettings)
+      // (HUDPositionManager.ws passes them in through sqmSetSettings)
       private var SQM_EDGE_TOP:Number = 4;
       private var SQM_EDGE_RIGHT:Number = 4;
       private var SQM_QUEST_GAP:Number = 8;
@@ -411,20 +412,195 @@
          this.sqmQuests.y += q.y - p.y;
       }
 
+      // after a zoom change (the Zoom setting, or the game's own interior / boat zoom): the hub map only asks for the
+      // tiles around the player when the player MOVES past a threshold (SetPlayerPosition), so a new zoom left part of
+      // the square dark until Geralt walked (2026-10-07, at 50 %). Ask for them now with the current position - the same
+      // call SetPlayerPosition makes - once the position and the world are known.
+      public function sqmRefreshTiles() : void
+      {
+         if(m_worldSize <= 0 || m_playerTileX < 0 || isNaN(m_playerTexturePosX) || !this.mcHubMap)
+         {
+            return;
+         }
+         this.mcHubMap.mcHubMapContainer.UpdatePosition(m_radius,m_playerTexturePosX,m_playerTexturePosY);
+      }
+
+      // the player widget (the game's "WolfHeadModule": medallion, vitality, stamina, toxicity, adrenaline) in the
+      // screen's bottom left instead of the top left (the owner, 2026-10-07: "the player's HUD widget in the top left. I
+      // want it in the bottom left"), PLAYER_LEFT / PLAYER_BOTTOM HUD units in from the edges; its buff icons
+      // ("BuffsModule", normally just underneath it) sit just above it, left aligned. Re-applied a few times a second,
+      // as for the quest list: the game's anchors put the modules back on a HUD scale or resolution change.
+      private var PLAYER_LEFT:Number = 20;
+      private var PLAYER_BOTTOM:Number = 20;
+      private var sqmWolf:DisplayObject;
+      private var sqmBuffs:DisplayObject;
+      private var sqmWolfSearched:int = 0;
+      private var sqmBuffsSearched:int = 0;
+
+      public function sqmSetPlayer(left:Number, bottom:Number) : void
+      {
+         this.PLAYER_LEFT = Math.max(0,left);
+         this.PLAYER_BOTTOM = Math.max(0,bottom);
+         if(this.sqmReady && stage)
+         {
+            this.sqmPlacePlayer();
+         }
+      }
+
+      // the stage box of what a module SHOWS: the union of its visible, non-empty leaves (a module's own bounds include
+      // hidden parts - the wolf head carries bars and icons that are off most of the time)
+      private function sqmShownBox(root:DisplayObject, depth:int, box:Rectangle) : Rectangle
+      {
+         var i:int = 0;
+         var c:DisplayObjectContainer = null;
+         var b:Rectangle = null;
+         if(!root || !root.visible || root.alpha <= 0 || depth < 0)
+         {
+            return box;
+         }
+         if(root is DisplayObjectContainer && DisplayObjectContainer(root).numChildren > 0 && depth > 0)
+         {
+            c = DisplayObjectContainer(root);
+            i = 0;
+            while(i < c.numChildren)
+            {
+               box = this.sqmShownBox(c.getChildAt(i),depth - 1,box);
+               i++;
+            }
+            return box;
+         }
+         b = root.getBounds(stage);
+         if(b.width <= 0 || b.height <= 0)
+         {
+            return box;
+         }
+         return !box ? b : box.union(b);
+      }
+
+      private function sqmMoveBox(d:DisplayObject, box:Rectangle, wantLeft:Number, wantBottom:Number) : void
+      {
+         var p:* = undefined;
+         var q:* = undefined;
+         if(Math.abs(box.left - wantLeft) < 0.5 && Math.abs(box.bottom - wantBottom) < 0.5)
+         {
+            return;
+         }
+         p = d.parent.globalToLocal(new flash.geom.Point(box.left,box.bottom));
+         q = d.parent.globalToLocal(new flash.geom.Point(wantLeft,wantBottom));
+         d.x += q.x - p.x;
+         d.y += q.y - p.y;
+      }
+
+      private function sqmPlacePlayer() : void
+      {
+         var scr:Rectangle = null;
+         var wolfBox:Rectangle = null;
+         var buffsBox:Rectangle = null;
+         if(!this.sqmReady || !stage)
+         {
+            return;
+         }
+         if(!this.sqmWolf || !this.sqmWolf.stage)
+         {
+            this.sqmWolf = null;
+            if(this.sqmWolfSearched > 40)
+            {
+               return;
+            }
+            this.sqmWolfSearched++;
+            this.sqmWolf = this.sqmFindModule(stage,"WolfHeadModule",6);
+            if(!this.sqmWolf)
+            {
+               return;
+            }
+         }
+         scr = this.sqmScreen();
+         wolfBox = this.sqmShownBox(this.sqmWolf,12,null);
+         if(!wolfBox)
+         {
+            return;
+         }
+         this.sqmMoveBox(this.sqmWolf,wolfBox,scr.left + PLAYER_LEFT,scr.bottom - PLAYER_BOTTOM);
+         wolfBox = this.sqmShownBox(this.sqmWolf,12,null);
+         if(!this.sqmBuffs || !this.sqmBuffs.stage)
+         {
+            this.sqmBuffs = null;
+            if(this.sqmBuffsSearched <= 40)
+            {
+               this.sqmBuffsSearched++;
+               this.sqmBuffs = this.sqmFindModule(stage,"BuffsModule",6);
+            }
+         }
+         if(this.sqmBuffs && wolfBox)
+         {
+            buffsBox = this.sqmShownBox(this.sqmBuffs,12,null);
+            if(buffsBox)
+            {
+               this.sqmMoveBox(this.sqmBuffs,buffsBox,wolfBox.left,wolfBox.top - 6);
+            }
+         }
+      }
+
       // the north mark turns round the map's centre at the circle's radius; on a square its distance from the centre is
       // the half side over max(|cos|, |sin|) of its direction - the clip is scaled out by that much and its glyph back in
       public function sqmPlaceNorth() : void
       {
          var dir:Number = (this.mcNorthSign.rotation - 90) * Math.PI / 180;
-         var k:Number = 1 / Math.max(Math.abs(Math.cos(dir)),Math.abs(Math.sin(dir)));
+         var m:Number = Math.max(Math.abs(Math.cos(dir)),Math.abs(Math.sin(dir)));
          var glyph:DisplayObject = null;
-         this.mcNorthSign.scaleX = k;
-         this.mcNorthSign.scaleY = k;
+         var gb:Rectangle = null;
+         var cx:Number = NaN;
+         var cy:Number = NaN;
+         var d0:Number = 0;
+         var r:Number = 0;
+         var half:Number = !this.sqmRect ? 0 : this.sqmRect.width / 2;
+         var k:Number = 1 / m;
+         // just INSIDE the frame, not on it: on the edge half the mark stood out past the square, and at the top the
+         // screen cut it off (open since 2026-10-06). Measured in this module's space with the clip at scale 1: d0 is
+         // the glyph's distance from the clip's pivot (the map centre) - the game's ring radius, larger than the half
+         // square - and r its own radius. Its centre goes to (half - r - line) / m from the centre on the square.
+         this.mcNorthSign.scaleX = 1;
+         this.mcNorthSign.scaleY = 1;
+         // the mark is the clip's own drawing when it has no child (seen 2026-10-07: the child branch never ran)
          if(this.mcNorthSign.numChildren > 0)
          {
             glyph = this.mcNorthSign.getChildAt(0);
+            if(isNaN(this.sqmGlyphX0))
+            {
+               this.sqmGlyphX0 = glyph.x;
+               this.sqmGlyphY0 = glyph.y;
+            }
+            glyph.scaleX = 1;
+            glyph.scaleY = 1;
+            glyph.x = this.sqmGlyphX0;
+            glyph.y = this.sqmGlyphY0;
+         }
+         gb = this.mcNorthSign.getBounds(this);
+         if(gb.width > 0)
+         {
+            cx = gb.x + gb.width / 2 - this.mcNorthSign.x;
+            cy = gb.y + gb.height / 2 - this.mcNorthSign.y;
+            d0 = Math.sqrt(cx * cx + cy * cy);
+            r = Math.max(gb.width,gb.height) / 2;
+            if(d0 > 0 && half > r + SQM_LINE_WIDTH)
+            {
+               k = (half - r - SQM_LINE_WIDTH) / m / d0;
+            }
+         }
+         this.mcNorthSign.scaleX = k;
+         this.mcNorthSign.scaleY = k;
+         if(glyph)
+         {
+            // back to its own size, about its own CENTRE: the glyph clip's origin is the map centre, not the mark (the
+            // first try scaled about the origin and put the mark straight back on the edge - logged 2026-10-07)
+            gb = glyph.getBounds(glyph);
             glyph.scaleX = 1 / k;
             glyph.scaleY = 1 / k;
+            glyph.x = this.sqmGlyphX0 + (gb.x + gb.width / 2) * (1 - 1 / k);
+            glyph.y = this.sqmGlyphY0 + (gb.y + gb.height / 2) * (1 - 1 / k);
          }
          this.sqmNorthRotation = this.mcNorthSign.rotation;
       }
+
+      private var sqmGlyphX0:Number = NaN;
+      private var sqmGlyphY0:Number = NaN;
