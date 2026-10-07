@@ -18,6 +18,13 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
 - Position sliders reach across the screen (top 0-1000, right / left 0-1800, bottom 0-1000), one unit per nudge.
 - Checked in game 2026-10-07 on the Nexus 12404 save: widget bottom left, zoom 50 / 201 / 50 live with no dark area,
   north mark inside at three camera angles.
+- Then the player widget's art (the owner, 2026-10-07): stamina, adrenaline and toxicity as straight bars under the
+  health bar, in that order - drawn bars (dark track, two-tone fill, thin border, pointed end) as thick as the game's
+  own toxicity bar, each a little shorter than the one above (lengths from the game's own three bars); adrenaline
+  marked at its thirds; the game's stamina arc, adrenaline points and toxicity arc faded out. The skull badge stays
+  toxicity's (at its bar's left end, as in the game), the sign badge beside it. A second movie, hud_wolfstatbars, is
+  now built into the same bundle. Checked in game (the potion's toxicity fills the green bar). Reopened: untested
+  again until the owner has seen it.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 
