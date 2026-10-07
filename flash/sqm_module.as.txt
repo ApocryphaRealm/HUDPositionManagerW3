@@ -1,0 +1,200 @@
+
+      // ==============================================================================================================
+      // Square Minimap (the owner, 2026-10-06): the game's own minimap, square, framed with its own ring art squared,
+      // flush in the screen's top right corner. Inserted into HudModuleMinimap2 by tools/build_flash.py.
+      // ==============================================================================================================
+
+      private var sqmReady:Boolean = false;
+      private var sqmRect:Rectangle;            // the round mask's box, in this module's space (the square's size)
+      private var sqmFrameRect:Rectangle;       // the ring art's box (a little wider: its line shows round the map)
+      private var sqmMaskCommon:Sprite;
+      private var sqmMaskHub:Sprite;
+      private var sqmMaskInterior:Sprite;
+      private var sqmMaskShading:Sprite;
+      private var sqmFrame:Sprite;
+      private var sqmRing:DisplayObject;
+      private var sqmNorthRotation:Number = NaN;
+      private var sqmLastX:Number = NaN;
+      private var sqmLastY:Number = NaN;
+      private var sqmLastW:Number = NaN;
+
+      // the ring art's colours (image 481 of the game's movie): a copper line and a dark plate lighter at the bottom
+      private static const SQM_LINE_COLOR:uint = 0xE4B186;
+      private static const SQM_LINE_ALPHA:Number = 0.72;
+      private static const SQM_LINE_WIDTH:Number = 2;
+
+      private function sqmSquare(rect:Rectangle) : Sprite
+      {
+         var s:Sprite = new Sprite();
+         s.graphics.beginFill(0xFF00FF,1);
+         s.graphics.drawRect(rect.x,rect.y,rect.width,rect.height);
+         s.graphics.endFill();
+         s.mouseEnabled = false;
+         return s;
+      }
+
+      private function sqmFindRing() : DisplayObject
+      {
+         var i:int = 0;
+         var d:DisplayObject = null;
+         var b:Rectangle = null;
+         // the ring is the one unnamed shape about 204 x 203 wide placed at the module's origin
+         i = 0;
+         while(i < numChildren)
+         {
+            d = getChildAt(i);
+            if(d is Shape)
+            {
+               b = d.getBounds(this);
+               if(b.width > 190 && b.width < 230 && b.height > 190 && b.height < 230)
+               {
+                  return d;
+               }
+            }
+            i++;
+         }
+         return null;
+      }
+
+      private function sqmDrawFrame() : void
+      {
+         var g:* = this.sqmFrame.graphics;
+         var r:Rectangle = this.sqmFrameRect;
+         var m:Matrix = new Matrix();
+         g.clear();
+         // the plate: dark, lighter towards the bottom, as the ring art's disc
+         m.createGradientBox(r.width,r.height,Math.PI / 2,r.x,r.y);
+         g.beginGradientFill(GradientType.LINEAR,[0x000000,0x181818,0x8F8F8F],[1,1,1],[0,128,255],m);
+         g.drawRect(r.x,r.y,r.width,r.height);
+         g.endFill();
+         // the copper line along the square's outer edge
+         g.lineStyle(SQM_LINE_WIDTH,SQM_LINE_COLOR,SQM_LINE_ALPHA,true);
+         g.drawRect(r.x + SQM_LINE_WIDTH / 2,r.y + SQM_LINE_WIDTH / 2,r.width - SQM_LINE_WIDTH,r.height - SQM_LINE_WIDTH);
+      }
+
+      public function sqmInit() : void
+      {
+         var c:Rectangle = null;
+         var side:Number = NaN;
+         if(this.sqmReady || !this.mcCommonMapMask)
+         {
+            return;
+         }
+         c = this.mcCommonMapMask.getBounds(this);
+         side = Math.max(c.width,c.height);
+         this.sqmRect = new Rectangle(c.x + c.width / 2 - side / 2,c.y + c.height / 2 - side / 2,side,side);
+         this.sqmRing = this.sqmFindRing();
+         if(this.sqmRing)
+         {
+            c = this.sqmRing.getBounds(this);
+            side = Math.max(c.width,c.height);
+            this.sqmFrameRect = new Rectangle(c.x + c.width / 2 - side / 2,c.y + c.height / 2 - side / 2,side,side);
+         }
+         else
+         {
+            this.sqmFrameRect = this.sqmRect.clone();
+            this.sqmFrameRect.inflate(2,2);
+         }
+         this.sqmMaskCommon = this.sqmSquare(this.sqmRect);
+         this.sqmMaskHub = this.sqmSquare(this.sqmRect);
+         this.sqmMaskInterior = this.sqmSquare(this.sqmRect);
+         this.sqmMaskShading = this.sqmSquare(this.sqmRect);
+         addChild(this.sqmMaskCommon);
+         addChild(this.sqmMaskHub);
+         addChild(this.sqmMaskInterior);
+         addChild(this.sqmMaskShading);
+         this.sqmFrame = new Sprite();
+         this.sqmFrame.mouseEnabled = false;
+         this.sqmFrame.mouseChildren = false;
+         this.sqmDrawFrame();
+         if(this.sqmRing)
+         {
+            addChildAt(this.sqmFrame,getChildIndex(this.sqmRing));
+            this.sqmRing.visible = false;
+         }
+         else
+         {
+            addChildAt(this.sqmFrame,0);
+         }
+         // the edge fade: the game's round shading clip, grown to cover the square's corners and cut square
+         if(this.mcShading)
+         {
+            this.sqmGrowAboutCentre(this.mcShading,Math.SQRT2);
+            this.mcShading.mask = this.sqmMaskShading;
+         }
+         this.sqmReady = true;
+         this.sqmEnableMask(this.mcCommonMap.mask != null);
+         addEventListener(Event.ENTER_FRAME,this.sqmOnFrame,false,0,true);
+         this.sqmOnFrame(null);
+      }
+
+      private function sqmGrowAboutCentre(d:DisplayObject, k:Number) : void
+      {
+         var cx:Number = this.sqmRect.x + this.sqmRect.width / 2;
+         var cy:Number = this.sqmRect.y + this.sqmRect.height / 2;
+         d.x = cx + (d.x - cx) * k;
+         d.y = cy + (d.y - cy) * k;
+         d.scaleX *= k;
+         d.scaleY *= k;
+      }
+
+      public function sqmEnableMask(on:Boolean) : Boolean
+      {
+         if(!this.sqmReady)
+         {
+            return false;
+         }
+         this.mcCommonMap.mask = !!on ? this.sqmMaskCommon : null;
+         this.mcHubMap.mask = !!on ? this.sqmMaskHub : null;
+         this.mcInteriorMap.mask = !!on ? this.sqmMaskInterior : null;
+         return true;
+      }
+
+      // once a frame, cheap: keep the square flush with the screen's top right corner (the anchors can move the module on
+      // a resolution or HUD scale change) and keep the north mark on the square's edge as the map turns
+      private function sqmOnFrame(e:Event) : void
+      {
+         if(!stage || !parent)
+         {
+            return;
+         }
+         if(this.sqmLastX != this.x || this.sqmLastY != this.y || this.sqmLastW != stage.stageWidth)
+         {
+            this.sqmPlace();
+         }
+         if(this.mcNorthSign && this.mcNorthSign.rotation != this.sqmNorthRotation)
+         {
+            this.sqmPlaceNorth();
+         }
+      }
+
+      private function sqmPlace() : void
+      {
+         var corner:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
+         var target:* = new flash.geom.Point(stage.stageWidth,0);
+         var a:* = parent.globalToLocal(corner);
+         var b:* = parent.globalToLocal(target);
+         this.x += b.x - a.x;
+         this.y += b.y - a.y;
+         this.sqmLastX = this.x;
+         this.sqmLastY = this.y;
+         this.sqmLastW = stage.stageWidth;
+      }
+
+      // the north mark turns round the map's centre at the circle's radius; on a square its distance from the centre is
+      // the half side over max(|cos|, |sin|) of its direction - the clip is scaled out by that much and its glyph back in
+      public function sqmPlaceNorth() : void
+      {
+         var dir:Number = (this.mcNorthSign.rotation - 90) * Math.PI / 180;
+         var k:Number = 1 / Math.max(Math.abs(Math.cos(dir)),Math.abs(Math.sin(dir)));
+         var glyph:DisplayObject = null;
+         this.mcNorthSign.scaleX = k;
+         this.mcNorthSign.scaleY = k;
+         if(this.mcNorthSign.numChildren > 0)
+         {
+            glyph = this.mcNorthSign.getChildAt(0);
+            glyph.scaleX = 1 / k;
+            glyph.scaleY = 1 / k;
+         }
+         this.sqmNorthRotation = this.mcNorthSign.rotation;
+      }

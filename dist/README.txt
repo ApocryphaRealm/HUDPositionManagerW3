@@ -1,0 +1,16 @@
+Witcher III Modding Tool, developed and released by CD PROJEKT RED
+
+Square Minimap (The Witcher 3: Wild Hunt - Remastered)
+Version 0.0.0
+
+The game's own minimap, square: the same map, pins, zoom and rotation, cut square instead of round, framed with the
+game's ring art drawn as a square, and sitting flush in the top right corner of the screen. The time of day and weather
+stay to the left of it, the quest list underneath. No settings.
+
+INSTALL
+Copy the Mods folder into the game folder, or install with a mod manager (Mod Organizer 2, Vortex). No script merging.
+It replaces the game's minimap movie (hud_minimap2.redswf): another mod that replaces the same movie will not combine
+with it - the one that loads first wins.
+
+LICENCE
+GPL-3.0-or-later. See LICENSE.
