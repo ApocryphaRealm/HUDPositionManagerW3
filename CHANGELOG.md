@@ -92,7 +92,18 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
     badge's were restored). The parts now hide and show as a whole.
   - The experience (level) bar is a part of its own too, "Experience bar" (the owner, 2026-10-07: it stayed behind
     when the health bar moved - "give it its own widget as well").
-  - Eleven languages: 102 keys.
+  - Pushing a part past the widget's edge no longer moves the whole widget (the owner, 2026-10-07: "whenever I try to
+    push it left, it pulls the character widget right"): the widget was placed by its shown box, which grew with the
+    part; it is now placed by its box with every part at rest.
+- No anchors any more (the owner, 2026-10-07: "Get rid of the anchors ... now that we have control over its position
+  through sliders, we don't need to lock it to a position"). The page's Place switches are gone (Top right corner,
+  Under the minimap, Bottom left corner / the player widget's shared switch, Above the player widget, Top left corner,
+  At the right edge): every element starts where the game puts it and its sliders move it; the defaults are the game's
+  own places. An anchor still on in the settings or a preset is converted, not dropped: the HUD measures the move that
+  keeps the element where the anchor put it ("Anchor:<key>:<x>:<y>" in the report; the dialogue choices when a
+  conversation shows), the bridge writes it into the sliders and switches the anchor off - nothing jumps. The player
+  widget's move passes to its parts, and an effects anchor still on takes the same move.
+  - Eleven languages: 92 keys.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 

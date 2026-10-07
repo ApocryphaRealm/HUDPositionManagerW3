@@ -46,6 +46,10 @@
             this.hpmDlgHide = f[6] == "1";
             this.hpmDlgPlace = f[9] == "1";
          }
+         if(!this.hpmDlgPlace)
+         {
+            this.hpmDlgReport = "";
+         }
          this.hpmPlaceChoices();
       }
 
@@ -61,6 +65,7 @@
          var a:* = undefined;
          var b:* = undefined;
          var on:Boolean = false;
+         var free:Number = NaN;
          if(!c || !c.parent || !stage)
          {
             return;
@@ -91,9 +96,10 @@
          a = c.parent.globalToLocal(new flash.geom.Point(0,0));
          b = c.parent.globalToLocal(new flash.geom.Point((on ? this.hpmDlgX : 0) / 100 * scr.width,(on ? this.hpmDlgY : 0) / 100 * scr.height));
          c.y = this.hpmChoiceY0 + (b.y - a.y);
+         free = this.hpmChoiceX0 + (b.x - a.x);   // where the move alone puts it (no anchor)
          if(!on || !this.hpmDlgPlace)
          {
-            c.x = this.hpmChoiceX0 + (b.x - a.x);
+            c.x = free;
             return;
          }
          if(!c.mcOptionList || !c.mcOptionList.dataProvider)
@@ -120,14 +126,25 @@
             return;
          }
          // the longest line's end on the screen's right edge, then the move
-         if(Math.abs(scr.right + this.hpmDlgX / 100 * scr.width - right) < 0.5)
+         if(Math.abs(scr.right + this.hpmDlgX / 100 * scr.width - right) >= 0.5)
          {
-            return;
+            a = c.parent.globalToLocal(new flash.geom.Point(right,0));
+            b = c.parent.globalToLocal(new flash.geom.Point(scr.right + this.hpmDlgX / 100 * scr.width,0));
+            c.x += b.x - a.x;
          }
-         a = c.parent.globalToLocal(new flash.geom.Point(right,0));
-         b = c.parent.globalToLocal(new flash.geom.Point(scr.right + this.hpmDlgX / 100 * scr.width,0));
-         c.x += b.x - a.x;
+         // The anchor is gone from the page (the owner, 2026-10-07: "Get rid of the anchors"): while an older settings file
+         // still has it on, report the move that keeps the list where the anchor put it, for the bridge to write into the
+         // sliders (HUDPositionManager.ws reads hpmDlgReport). Measured with the lines of the conversation on screen.
+         a = c.parent.localToGlobal(new flash.geom.Point(free,0));
+         b = c.parent.localToGlobal(new flash.geom.Point(c.x,0));
+         if(scr.width > 0)
+         {
+            this.hpmDlgReport = "Anchor:Dialogue:" + String(Math.round((this.hpmDlgX + (b.x - a.x) / scr.width * 100) * 100) / 100) + ":"
+               + String(Math.round(this.hpmDlgY * 100) / 100) + ";";
+         }
       }
+
+      public var hpmDlgReport:String = "";
 
       private var hpmChoiceHidden:Boolean = false;
 

@@ -207,7 +207,7 @@
             o = {"key":HPM_MODULES[i][0],"module":HPM_MODULES[i][1],"m":null,"searched":0,
                "x":0,"y":0,"s":1,"sx":1,"sy":1,"hide":false,"show":0,"always":false,"place":false,"with":"","group":false,"zoom":100,
                "baseX":NaN,"baseY":NaN,"baseSX":NaN,"baseSY":NaN,"lastX":NaN,"lastY":NaN,"lastSX":NaN,"lastSY":NaN,
-               "hiddenByUs":false,"held":false,"active":false,"dirty":true};
+               "hiddenByUs":false,"held":false,"anchorOk":false,"anchorX":0,"anchorY":0,"active":false,"dirty":true};
             this.hpmEls.push(o);
             this.hpmByKey[o.key] = o;
             i++;
@@ -262,6 +262,7 @@
             o.group = f[11] == "1";
             o.zoom = Number(f[12]);
             o.dirty = true;   // re-applied on the next frame, from the game's place
+            o.anchorOk = false;
          }
          this.hpmLayoutSeen = true;
          this.sqmQuestOver = 0;
@@ -426,12 +427,7 @@
          }
          if(!this.hpmLayoutSeen)
          {
-            // no layout yet (the page's string arrives through the script): the 1.0.0 places, so the HUD never jumps
-            this.hpmByKey["Minimap"].place = true;
-            this.hpmByKey["Quests"].place = true;
-            this.hpmByKey["Player"].place = true;
-            this.hpmByKey["Buffs"].place = true;
-            this.hpmByKey["QuickItems"].place = true;
+            // no layout yet (the page's string arrives through the script): the game's own places (no anchors since 2026-10-07)
             this.hpmLayoutSeen = true;
             i = 0;
             while(i < this.hpmEls.length)
@@ -547,7 +543,10 @@
          {
             if(o.place)
             {
-               this.hpmPlace(o,m,scr);
+               if(this.hpmPlace(o,m,scr))
+               {
+                  this.hpmMeasureAnchor(o,m,scr);
+               }
                o.lastX = m.x;
                o.lastY = m.y;
                o.lastSX = m.scaleX;
@@ -648,9 +647,28 @@
          return (b.y + b.height / 2) * (m.scaleY - o.baseSY);
       }
 
+      // The anchors are gone from the page (the owner, 2026-10-07: "Get rid of the anchors ... now that we have control over
+      // its position through sliders, we don't need to lock it to a position"). An element whose anchor is still on (a
+      // settings file or preset from before) is placed by it once more, and this measures the move that, from the game's
+      // own place, puts it exactly there: its sliders' new values. The report carries them ("Anchor:<key>:<x>:<y>;") and
+      // the page's bridge writes them and switches the anchor off, so the element stays where it is on the screen.
+      private function hpmMeasureAnchor(o:Object, m:DisplayObject, scr:Rectangle) : void
+      {
+         var d:flash.geom.Point = this.hpmToParent(m,this.hpmPx(o,scr),this.hpmPy(o,scr));
+         var free:* = m.parent.localToGlobal(new flash.geom.Point(o.baseX + d.x - this.hpmCentreShift(o,m,true),o.baseY + d.y - this.hpmCentreShift(o,m,false)));
+         var now:* = m.parent.localToGlobal(new flash.geom.Point(m.x,m.y));
+         if(scr.width <= 0 || scr.height <= 0 || isNaN(o.baseX))
+         {
+            return;
+         }
+         o.anchorX = o.x + (now.x - free.x) / scr.width * 100;
+         o.anchorY = o.y + (now.y - free.y) / scr.height * 100;
+         o.anchorOk = true;
+      }
+
       // this mod's spots (the 1.0.0 layout): a box edge of the element on a screen corner or beside another element, plus
-      // the element's move (percent of the screen)
-      private function hpmPlace(o:Object, m:DisplayObject, scr:Rectangle) : void
+      // the element's move (percent of the screen); false when the box to place by is not there yet
+      private function hpmPlace(o:Object, m:DisplayObject, scr:Rectangle) : Boolean
       {
          var box:Rectangle = null;
          var ox:Number = this.hpmPx(o,scr);
@@ -665,17 +683,18 @@
          {
             if(!this.sqmReady)
             {
-               return;
+               return false;
             }
             corner = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
             this.hpmMoveTo(m,corner.x,corner.y,scr.right + ox - (this.hpmByKey["Quests"].place ? this.sqmQuestOver : 0),scr.top + oy);
+            return true;
          }
          else if(o.key == "Quests")
          {
             mm = this.hpmByKey["Minimap"];
             if(!this.sqmReady)
             {
-               return;
+               return false;
             }
             this.sqmBoxL = NaN;
             this.sqmBoxR = NaN;
@@ -683,7 +702,7 @@
             this.sqmTextBox(DisplayObjectContainer(m),12);
             if(isNaN(this.sqmBoxT))
             {
-               return;
+               return false;
             }
             bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
             // centred exactly under the square; text wider than the square moves the square in from the right (1.0.0)
@@ -694,23 +713,26 @@
                mm.dirty = true;
             }
             this.hpmMoveTo(m,this.sqmBoxL,this.sqmBoxT,bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2 + ox,bottom.y + oy);
+            return true;
          }
          else if(o.key == "Player")
          {
-            box = this.sqmShownBox(m,12,null);
+            box = this.hpmWolfRest(m) || this.sqmShownBox(m,12,null);
             if(box)
             {
                this.hpmMoveTo(m,box.left,box.bottom,scr.left + ox,scr.bottom + oy);
+               return true;
             }
          }
          else if(o.key == "Buffs")
          {
             wolf = this.hpmByKey["Player"];
-            wolfBox = !wolf.m ? null : this.sqmShownBox(DisplayObject(wolf.m),12,null);
+            wolfBox = !wolf.m ? null : this.hpmWolfRest(DisplayObject(wolf.m)) || this.sqmShownBox(DisplayObject(wolf.m),12,null);
             box = this.sqmShownBox(m,12,null);
             if(box && wolfBox)
             {
                this.hpmMoveTo(m,box.left,box.bottom,wolfBox.left + ox,wolfBox.top + oy);
+               return true;
             }
          }
          else if(o.key == "QuickItems")
@@ -719,8 +741,26 @@
             if(box)
             {
                this.hpmMoveTo(m,box.left,box.top,scr.left + ox,scr.top + oy);
+               return true;
             }
          }
+         return false;
+      }
+
+      // the player widget's box with its parts at rest (hud_wolfstatbars' hpmRestBox), so a part moved past the widget's
+      // edge never moves the widget (the owner, 2026-10-07: pushing the experience bar left pulled the widget right)
+      private function hpmWolfRest(m:DisplayObject) : Rectangle
+      {
+         var r:Rectangle = null;
+         try
+         {
+            r = Object(m).hpmRestBox() as Rectangle;
+         }
+         catch(err:Error)
+         {
+            r = null;
+         }
+         return !r || r.width <= 0 ? null : r;
       }
 
       // moves m so the stage point (fromX, fromY) of it lands on (toX, toY)
@@ -774,6 +814,17 @@
          while(i < HPM_PARTS.length)
          {
             s += HPM_PARTS[i] + ":1;";
+            i++;
+         }
+         // anchors still on (from an older settings file): the slider values that keep each element where it is
+         i = 0;
+         while(i < this.hpmEls.length)
+         {
+            o = this.hpmEls[i];
+            if(o.place && o.anchorOk)
+            {
+               s += "Anchor:" + o.key + ":" + String(Math.round(o.anchorX * 100) / 100) + ":" + String(Math.round(o.anchorY * 100) / 100) + ";";
+            }
             i++;
          }
          this.sqmReport = s;

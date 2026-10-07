@@ -179,18 +179,6 @@ namespace page
 			return a_i < elements::Count() ? elements::All()[a_i].english : "";
 		}
 
-		const char* PlaceName(const elements::Element& a_el)
-		{
-			const std::string_view k = a_el.placeKey ? a_el.placeKey : "";
-			if (k == "HPM_PlaceTopRight") return TR("HPM_PlaceTopRight", "Top right corner");
-			if (k == "HPM_PlaceUnderMinimap") return TR("HPM_PlaceUnderMinimap", "Under the minimap");
-			if (k == "HPM_PlaceBottomLeft") return TR("HPM_PlaceBottomLeft", "Bottom left corner");
-			if (k == "HPM_PlaceAbovePlayer") return TR("HPM_PlaceAbovePlayer", "Above the player widget");
-			if (k == "HPM_PlaceTopLeft") return TR("HPM_PlaceTopLeft", "Top left corner");
-			if (k == "HPM_PlaceRightEdge") return TR("HPM_PlaceRightEdge", "At the right edge");
-			return a_el.placeEnglish ? a_el.placeEnglish : "";
-		}
-
 		// The move sliders' range: as far as the element can go before its drawn box leaves the screen (the box the HUD
 		// reported, in percent), or the whole range with Free placement or before the HUD has reported.
 		void Range(const bridge::ElementStatus& a_st, const settings::Element& a_e, bool a_unlocked, double& a_minX, double& a_maxX, double& a_minY, double& a_maxY)
@@ -226,23 +214,12 @@ namespace page
 			}
 			bool changed = false;
 			if (elements::WolfPart(el)) {
-				// where the player widget's parts start: one switch, shared by every part (it belongs to the widget as a whole)
 				Hint(TR("HPM_WolfPartHint", "One part of the player widget, on its own: it moves, sizes and hides by itself. Pick it on the Combined widgets tab to move it together with other parts or widgets."));
-				if (const int p = elements::IndexOf("Player"); p >= 0) {
-					bool place = a_v.elements[static_cast<std::size_t>(p)].place;
-					if (Switch((std::string(TR("HPM_PlayerPlace", "Player widget in the bottom left corner")) + id + "pp").c_str(), &place)) {
-						settings::Update([&](settings::Values& s) { s.elements[static_cast<std::size_t>(p)].place = place; });
-						logger::info("page: the player widget's parts start {}", place ? "in the bottom left corner" : "where the game puts them");
-					}
-					Hint(place ? TR("HPM_PlayerPlaceOnHint", "Shared by all its parts. The parts start from the bottom left corner; the sliders below move this one from there.")
-					           : TR("HPM_PlayerPlaceOffHint", "Shared by all its parts. Off: the parts start where the game puts the player widget."));
-				}
 			}
-			if (el.placeKey) {
-				changed |= Switch((std::string(PlaceName(el)) + id + "p").c_str(), &e.place);
-				Hint(e.place ? TR("HPM_PlaceOnHint", "Placed there by this mod; the sliders below move it from that spot.")
-				             : TR("HPM_PlaceOffHint", "Off: where the game puts it; the sliders below move it from there."));
-			}
+			// no anchors (the owner, 2026-10-07: "Get rid of the anchors ... we don't need to lock it to a position"): the
+			// sliders move every element from where the game puts it; an anchor left on in older settings is converted by the
+			// bridge once the HUD has measured it (Bridge.cpp ConvertAnchors)
+			if (e.place) Hint(TR("HPM_AnchorConverting", "Being moved over to its sliders - it keeps its place on the screen."));
 			double minX, maxX, minY, maxY;
 			Range(st, e, a_v.unlocked, minX, maxX, minY, maxY);
 			minX = std::clamp(minX, -100.0, 100.0);

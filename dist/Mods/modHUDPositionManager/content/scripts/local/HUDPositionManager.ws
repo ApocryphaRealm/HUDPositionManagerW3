@@ -163,6 +163,14 @@ function HPM_Update(force : bool)
 	{
 		report += wolf.HPM_Report();
 	}
+	if (hud)
+	{
+		dlg = (CR4HudModuleDialog)hud.GetHudModule("DialogModule");
+		if (dlg)
+		{
+			report += dlg.HPM_Report();
+		}
+	}
 	if (report != "" && report != hpmLastReport)
 	{
 		hpmLastReport = report;
@@ -266,6 +274,13 @@ public function HPM_SetLayout(layout : string)
 		}
 	}
 	hpmFxDlgLayout.InvokeSelfOneArg(FlashArgString(layout));
+}
+
+// The anchor's measured slider values while an older settings file still has the dialogue's anchor on ("" otherwise).
+@addMethod(CR4HudModuleDialog)
+public function HPM_Report() : string
+{
+	return GetModuleFlash().GetMemberFlashString("hpmDlgReport");
 }
 
 @wrapMethod(CR4HudModuleDialog)

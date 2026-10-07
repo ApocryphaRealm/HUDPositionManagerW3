@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // ============================================================================================================
 // The HUD elements of The Witcher 3 (5.0) this page places - the same shape as the Oblivion Remastered and Skyrim
@@ -24,11 +24,14 @@ namespace elements
 		bool        stretch = false;  // Length and Height beside Size (the bars)
 		bool        fades = false;    // the game fades it on its own: "Always visible" applies
 		bool        bar = false;      // one of the player widget's bars: Fill from / Grows toward (phase 3)
-		// the place this mod gives it instead of the game's (the 1.0.0 layout, kept as each element's "Place" choice):
-		// nullptr = only "Where the game puts it"
+		// The 1.0.0 layout's anchor for it (a corner, under the minimap, ...). Gone from the page since 2026-10-07 (the owner:
+		// "Get rid of the anchors ... now that we have control over its position through sliders, we don't need to lock it
+		// to a position"): every element starts where the game puts it and its sliders move it. An anchor still on in a
+		// settings file or preset keeps working only until the HUD reports how far it moved the element; the bridge then
+		// adds that to the element's sliders and switches the anchor off (Bridge.cpp ConvertAnchors), so nothing jumps.
 		const char* placeKey = nullptr;
 		const char* placeEnglish = nullptr;
-		bool        placeDefault = false;   // that place is the default
+		bool        placeDefault = false;   // no anchor is on by default any more
 		// not on the page: the player widget as a whole, which only carries its parts' shared start place (the owner,
 		// 2026-10-07: the player widget is broken up into its parts, not one widget that joins the Combined widgets)
 		bool        internal = false;
@@ -38,12 +41,12 @@ namespace elements
 	{
 		static const std::vector<Element> kAll{
 			// the minimap: square, flush in the screen's top right corner by default (Square Minimap 1.0.0)
-			{ .key = "Minimap", .english = "Minimap", .module = "Minimap2Module", .fades = true, .placeKey = "HPM_PlaceTopRight", .placeEnglish = "Top right corner", .placeDefault = true },
+			{ .key = "Minimap", .english = "Minimap", .module = "Minimap2Module", .fades = true, .placeKey = "HPM_PlaceTopRight", .placeEnglish = "Top right corner" },
 			// the quest list, centred under the minimap by default
-			{ .key = "Quests", .english = "Quest list", .module = "QuestsModule", .fades = true, .placeKey = "HPM_PlaceUnderMinimap", .placeEnglish = "Under the minimap", .placeDefault = true },
+			{ .key = "Quests", .english = "Quest list", .module = "QuestsModule", .fades = true, .placeKey = "HPM_PlaceUnderMinimap", .placeEnglish = "Under the minimap" },
 			// the player widget as a whole: never on the page - it only holds where its parts start (bottom left by default,
 			// the owner, 2026-10-07; the "Place" switch every part's tab shows), and the minimap movie places it there
-			{ .key = "Player", .english = "Player widget", .module = "WolfHeadModule", .placeKey = "HPM_PlaceBottomLeft", .placeEnglish = "Bottom left corner", .placeDefault = true, .internal = true },
+			{ .key = "Player", .english = "Player widget", .module = "WolfHeadModule", .placeKey = "HPM_PlaceBottomLeft", .placeEnglish = "Bottom left corner", .internal = true },
 			// its parts (the owner, 2026-10-07: "the player widget is a combined widget which should be broken up into its
 			// individual parts"), each an element of its own, moved, sized and shown in hud_wolfstatbars
 			{ .key = "Medallion", .english = "Medallion", .module = nullptr, .movie = Movie::kWolf, .fades = true },
@@ -57,10 +60,10 @@ namespace elements
 			{ .key = "Sign", .english = "Sign badge", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			{ .key = "Skull", .english = "Toxicity skull", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			// the effects (food, potions, oils): just above the player widget by default
-			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .fades = true, .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget", .placeDefault = true },
-			{ .key = "QuickItems", .english = "Quick items", .module = "ItemInfoModule", .fades = true, .placeKey = "HPM_PlaceTopLeft", .placeEnglish = "Top left corner", .placeDefault = true },
+			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .fades = true, .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget" },
+			{ .key = "QuickItems", .english = "Quick items", .module = "ItemInfoModule", .fades = true, .placeKey = "HPM_PlaceTopLeft", .placeEnglish = "Top left corner" },
 			// the dialogue choice list, in hud_dialog: its longest line ends a small gap from the right edge by default
-			{ .key = "Dialogue", .english = "Dialogue choices", .module = nullptr, .movie = Movie::kDialog, .placeKey = "HPM_PlaceRightEdge", .placeEnglish = "At the right edge", .placeDefault = true },
+			{ .key = "Dialogue", .english = "Dialogue choices", .module = nullptr, .movie = Movie::kDialog, .placeKey = "HPM_PlaceRightEdge", .placeEnglish = "At the right edge" },
 			{ .key = "Subtitles", .english = "Subtitles", .module = "SubtitlesModule", .fades = true },
 			{ .key = "Messages", .english = "Messages", .module = "MessageModule", .fades = true },
 			{ .key = "Hints", .english = "Button hints", .module = "ControlsFeedbackModule", .fades = true },

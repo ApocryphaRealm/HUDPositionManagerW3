@@ -251,6 +251,17 @@ row("HPM_El_Health", "Health bar",
 row("HPM_El_Experience", "Experience bar",
     "Erfahrungsleiste", "Barre d'expérience", "Barra de experiencia", "Barra dell'esperienza", "Pasek doświadczenia",
     "Ukazatel zkušeností", "Полоса опыта", "経験値バー", "경험치 바", "经验条")
+row("HPM_AnchorConverting", "Being moved over to its sliders - it keeps its place on the screen.",
+    "Wird auf die Regler übertragen - es behält seinen Platz auf dem Bildschirm.",
+    "En cours de transfert vers ses curseurs - il garde sa place à l'écran.",
+    "Se está pasando a sus controles deslizantes: conserva su sitio en la pantalla.",
+    "In corso di passaggio ai suoi cursori: mantiene il suo posto sullo schermo.",
+    "Przenoszenie na suwaki - zachowuje swoje miejsce na ekranie.",
+    "Převádí se na posuvníky - zachová si své místo na obrazovce.",
+    "Переносится на ползунки - остаётся на своём месте на экране.",
+    "スライダーへ移行中です。画面上の位置はそのままです。",
+    "슬라이더로 옮기는 중입니다. 화면의 위치는 그대로입니다.",
+    "正在转为由滑块控制——屏幕上的位置保持不变。")
 row("HPM_WolfPartHint",
     "One part of the player widget, on its own: it moves, sizes and hides by itself. Pick it on the Combined widgets tab to move it together with other parts or widgets.",
     "Ein Teil der Spieleranzeige, für sich allein: Er wird einzeln verschoben, skaliert und ausgeblendet. Wähle ihn im Tab Kombinierte Anzeigen, um ihn zusammen mit anderen Teilen oder Anzeigen zu bewegen.",
@@ -263,35 +274,6 @@ row("HPM_WolfPartHint",
     "プレイヤー表示の一部を単独で扱います: 個別に移動、サイズ変更、非表示ができます。ほかの部分やウィジェットと一緒に動かすには、結合ウィジェットのタブで選んでください。",
     "플레이어 표시의 한 부분을 따로 다룹니다: 혼자 움직이고, 크기가 바뀌고, 숨겨집니다. 다른 부분이나 위젯과 함께 움직이려면 결합된 위젯 탭에서 고르세요.",
     "玩家状态栏的一个独立部分：可单独移动、缩放和隐藏。在“组合组件”标签页中选中它，即可与其他部分或组件一起移动。")
-row("HPM_PlayerPlace", "Player widget in the bottom left corner",
-    "Spieleranzeige in der unteren linken Ecke", "Widget du joueur dans le coin inférieur gauche",
-    "Indicador del jugador en la esquina inferior izquierda", "Indicatore del giocatore nell'angolo in basso a sinistra",
-    "Wskaźnik gracza w lewym dolnym rogu", "Ukazatel hráče v levém dolním rohu", "Панель игрока в левом нижнем углу",
-    "プレイヤー表示を左下の隅に", "플레이어 표시를 왼쪽 아래 모서리에", "玩家状态栏位于左下角")
-row("HPM_PlayerPlaceOnHint",
-    "Shared by all its parts. The parts start from the bottom left corner; the sliders below move this one from there.",
-    "Gilt für alle Teile. Die Teile beginnen in der unteren linken Ecke; die Regler unten verschieben diesen Teil von dort aus.",
-    "Commun à toutes ses parties. Les parties partent du coin inférieur gauche ; les curseurs ci-dessous déplacent celle-ci à partir de là.",
-    "Compartido por todas sus partes. Las partes parten de la esquina inferior izquierda; los controles de abajo mueven esta desde ahí.",
-    "Condiviso da tutte le sue parti. Le parti partono dall'angolo in basso a sinistra; i cursori qui sotto spostano questa da lì.",
-    "Wspólne dla wszystkich części. Części zaczynają w lewym dolnym rogu; suwaki poniżej przesuwają tę część stamtąd.",
-    "Společné pro všechny části. Části začínají v levém dolním rohu; posuvníky níže posouvají tuto část odtud.",
-    "Общее для всех частей. Части начинаются в левом нижнем углу; ползунки ниже сдвигают эту часть оттуда.",
-    "すべての部分で共通です。各部分は左下の隅から始まり、下のスライダーでこの部分をそこから動かします。",
-    "모든 부분에 공통입니다. 부분들은 왼쪽 아래 모서리에서 시작하며, 아래 슬라이더로 이 부분을 그곳에서 옮깁니다.",
-    "所有部分共用。各部分从左下角开始；下方的滑块从那里移动此部分。")
-row("HPM_PlayerPlaceOffHint",
-    "Shared by all its parts. Off: the parts start where the game puts the player widget.",
-    "Gilt für alle Teile. Aus: Die Teile beginnen dort, wo das Spiel die Spieleranzeige platziert.",
-    "Commun à toutes ses parties. Désactivé : les parties partent de l'endroit où le jeu place le widget du joueur.",
-    "Compartido por todas sus partes. Desactivado: las partes parten de donde el juego coloca el indicador del jugador.",
-    "Condiviso da tutte le sue parti. Disattivato: le parti partono da dove il gioco mette l'indicatore del giocatore.",
-    "Wspólne dla wszystkich części. Wyłączone: części zaczynają tam, gdzie gra umieszcza wskaźnik gracza.",
-    "Společné pro všechny části. Vypnuto: části začínají tam, kam hra umístí ukazatel hráče.",
-    "Общее для всех частей. Выкл.: части начинаются там, где игра размещает панель игрока.",
-    "すべての部分で共通です。オフ: 各部分はゲームがプレイヤー表示を置く位置から始まります。",
-    "모든 부분에 공통입니다. 끔: 부분들은 게임이 플레이어 표시를 두는 곳에서 시작합니다.",
-    "所有部分共用。关闭：各部分从游戏放置玩家状态栏的位置开始。")
 row("HPM_AlwaysPartHint",
     "The game fades the player widget out on its own. On: this part stays shown while you play; the parts left off still fade.",
     "Das Spiel blendet die Spieleranzeige von selbst aus. An: Dieser Teil bleibt beim Spielen sichtbar; die übrigen Teile werden weiterhin ausgeblendet.",
@@ -380,25 +362,6 @@ row("HPM_El_TimeLapse", "Passing time text",
     "Tekst upływu czasu", "Text plynutí času", "Текст течения времени", "時間経過の表示", "시간 경과 문구", "时间流逝文字")
 
 # ------------------------------------------------------------------------------------------------ each element's Place
-row("HPM_PlaceTopRight", "Top right corner",
-    "Obere rechte Ecke", "Coin supérieur droit", "Esquina superior derecha", "Angolo in alto a destra",
-    "Prawy górny róg", "Pravý horní roh", "Правый верхний угол", "右上の隅", "오른쪽 위 모서리", "右上角")
-row("HPM_PlaceUnderMinimap", "Under the minimap",
-    "Unter der Minikarte", "Sous la mini-carte", "Debajo del minimapa", "Sotto la minimappa", "Pod minimapą",
-    "Pod minimapou", "Под мини-картой", "ミニマップの下", "미니맵 아래", "小地图下方")
-row("HPM_PlaceBottomLeft", "Bottom left corner",
-    "Untere linke Ecke", "Coin inférieur gauche", "Esquina inferior izquierda", "Angolo in basso a sinistra",
-    "Lewy dolny róg", "Levý dolní roh", "Левый нижний угол", "左下の隅", "왼쪽 아래 모서리", "左下角")
-row("HPM_PlaceAbovePlayer", "Above the player widget",
-    "Über der Spieleranzeige", "Au-dessus du widget du joueur", "Encima del indicador del jugador",
-    "Sopra l'indicatore del giocatore", "Nad wskaźnikiem gracza", "Nad ukazatelem hráče", "Над панелью игрока",
-    "プレイヤー表示の上", "플레이어 표시 위", "玩家状态栏上方")
-row("HPM_PlaceTopLeft", "Top left corner",
-    "Obere linke Ecke", "Coin supérieur gauche", "Esquina superior izquierda", "Angolo in alto a sinistra",
-    "Lewy górny róg", "Levý horní roh", "Левый верхний угол", "左上の隅", "왼쪽 위 모서리", "左上角")
-row("HPM_PlaceRightEdge", "At the right edge",
-    "Am rechten Rand", "Au bord droit", "En el borde derecho", "Sul bordo destro", "Przy prawej krawędzi",
-    "U pravého okraje", "У правого края", "右端", "오른쪽 가장자리", "右侧边缘")
 
 # ------------------------------------------------------------------------------------------------ an element's tab
 row("HPM_NoHud", "The HUD has not reported yet - load a game to see this element.",
@@ -428,28 +391,6 @@ row("HPM_Found", "In your HUD. Changes show at once.",
     "En tu HUD. Los cambios se ven al instante.", "Nel tuo HUD. Le modifiche si vedono subito.",
     "W twoim HUD. Zmiany widać od razu.", "Ve vašem HUD. Změny se projeví hned.", "В вашем HUD. Изменения видны сразу.",
     "HUDにあります。変更はすぐに反映されます。", "HUD에 있습니다. 변경 사항이 바로 보입니다.", "在你的 HUD 中。更改立即生效。")
-row("HPM_PlaceOnHint", "Placed there by this mod; the sliders below move it from that spot.",
-    "Von dieser Mod dort platziert; die Regler unten verschieben es von dieser Stelle aus.",
-    "Placé là par ce mod ; les curseurs ci-dessous le déplacent à partir de cet endroit.",
-    "Colocado ahí por este mod; los controles deslizantes de abajo lo mueven desde ese punto.",
-    "Posizionato lì da questa mod; i cursori qui sotto lo spostano da quel punto.",
-    "Umieszczony tam przez tę modyfikację; suwaki poniżej przesuwają go od tego miejsca.",
-    "Umístěno tam tímto modem; posuvníky níže ho posouvají z tohoto místa.",
-    "Размещён там этим модом; ползунки ниже сдвигают его от этого места.",
-    "このMODがそこに配置しています。下のスライダーでその位置から動かせます。",
-    "이 모드가 그곳에 배치했습니다. 아래 슬라이더로 그 위치에서 옮깁니다.",
-    "由本模组放置在此处；下方滑块从该位置移动它。")
-row("HPM_PlaceOffHint", "Off: where the game puts it; the sliders below move it from there.",
-    "Aus: dort, wo das Spiel es platziert; die Regler unten verschieben es von dort aus.",
-    "Désactivé : là où le jeu le place ; les curseurs ci-dessous le déplacent à partir de là.",
-    "Desactivado: donde lo pone el juego; los controles deslizantes de abajo lo mueven desde ahí.",
-    "Disattivo: dove lo mette il gioco; i cursori qui sotto lo spostano da lì.",
-    "Wyłączone: tam, gdzie umieszcza go gra; suwaki poniżej przesuwają go od tego miejsca.",
-    "Vypnuto: tam, kam ho dává hra; posuvníky níže ho posouvají odtud.",
-    "Выкл.: там, где его ставит игра; ползунки ниже сдвигают его оттуда.",
-    "オフ: ゲームが置く位置です。下のスライダーでそこから動かせます。",
-    "꺼짐: 게임이 두는 위치입니다. 아래 슬라이더로 그곳에서 옮깁니다.",
-    "关闭：位于游戏默认的位置；下方滑块从那里移动它。")
 row("HPM_MoveX", "Move left / right",
     "Nach links / rechts", "Déplacer gauche / droite", "Mover izquierda / derecha", "Sposta sinistra / destra",
     "Przesuń w lewo / w prawo", "Posun vlevo / vpravo", "Сдвиг влево / вправо", "左右に移動", "좌우 이동", "左右移动")

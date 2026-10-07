@@ -249,25 +249,13 @@ namespace settings
 		}
 	}
 
-	// The 1.0.0 layout is each element's default: its Place on (the minimap in the top right corner, the player widget in the
-	// bottom left, ...) and the small gaps of 1.0.0 as the offset (HUD units of a 1920 x 1080 screen, in percent).
+	// Every element's default is where the game puts it, at its own size (no anchors since 2026-10-07 - Elements.h placeKey).
 	Element DefaultElement(std::size_t a_index)
 	{
 		Element e;
 		if (a_index >= elements::Count()) return e;
 		const auto& el = elements::All()[a_index];
 		e.place = el.placeKey && el.placeDefault;
-		const std::string_view k = el.key;
-		const auto px = [](float a_units) { return a_units / 1920.0f * 100.0f; };
-		const auto py = [](float a_units) { return a_units / 1080.0f * 100.0f; };
-		if (k == "Minimap") { e.x = -px(4); e.y = py(4); }
-		else if (k == "Quests") { e.y = py(8); }
-		else if (k == "Player") { e.x = px(8); e.y = -py(8); }
-		else if (k == "Buffs") { e.y = -py(6); }
-		else if (k == "QuickItems") { e.x = px(8); e.y = py(8); }
-		else if (k == "Dialogue") { e.x = -px(40); }
-		e.x = std::round(e.x * 100.0f) / 100.0f;   // the INI's two decimals
-		e.y = std::round(e.y * 100.0f) / 100.0f;
 		return e;
 	}
 
