@@ -87,3 +87,50 @@ function OnTick(timeDelta : float)
 	}
 	return r;
 }
+
+// An empty slider reads "" - the menu would draw it at 0 while the mod uses its default. So each empty value gets its
+// default written once per session when the main menu or the game menu opens (never while a save loads: an engine
+// setting written at start-up faulted for AMF - logic library), and the page shows what the mod does (rule 16).
+
+@addField(CR4Game)
+var sqmDefaultsWritten : bool;
+
+@addMethod(CR4Game)
+public function SQM_EnsureDefaults()
+{
+	var cfg : CInGameConfigWrapper;
+	var wrote : bool;
+
+	if (sqmDefaultsWritten)
+	{
+		return;
+	}
+	sqmDefaultsWritten = true;
+	cfg = GetInGameConfigWrapper();
+	if (!cfg)
+	{
+		return;
+	}
+	if (cfg.GetVarValue('SquareMinimap', 'Top') == "") { cfg.SetVarValue('SquareMinimap', 'Top', "20"); wrote = true; }
+	if (cfg.GetVarValue('SquareMinimap', 'Right') == "") { cfg.SetVarValue('SquareMinimap', 'Right', "20"); wrote = true; }
+	if (cfg.GetVarValue('SquareMinimap', 'QuestGap') == "") { cfg.SetVarValue('SquareMinimap', 'QuestGap', "8"); wrote = true; }
+	if (wrote)
+	{
+		SaveUserSettings();
+		LogChannel('SquareMinimap', "settings: empty values got their defaults (top 20, right 20, quest gap 8)");
+	}
+}
+
+@wrapMethod(CR4CommonMainMenuBase)
+function OnConfigUI()
+{
+	theGame.SQM_EnsureDefaults();
+	return wrappedMethod();
+}
+
+@wrapMethod(CR4IngameMenu)
+function OnConfigUI()
+{
+	theGame.SQM_EnsureDefaults();
+	return wrappedMethod();
+}
