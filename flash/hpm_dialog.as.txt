@@ -1,0 +1,104 @@
+
+      // =============================================================================================================
+      // HUD Position Manager - the dialogue choices on the right (the owner, 2026-10-07: "move the dialogue selections
+      // to the right of the screen so they don't block the view of the person you're talking to").
+      // The game draws the choices in mcOptionContainer, right of centre, with lines up to 540 units wide, so a short
+      // list sits over the middle of the picture. The whole container is moved sideways so the end of its longest line
+      // is HPM_DIALOG_GAP HUD units from the screen's right edge; the lines stay left aligned with each other, their
+      // icons and the selection arrow move with them. Placed when the game sets the choices and re-checked a few times a
+      // second while they show (a controller switch re-renders the lines without their number prefix). Off: the game's
+      // own position. HUDPositionManager.ws hands in the settings page's values through hpmSetDialog.
+      // =============================================================================================================
+      private var HPM_DIALOG_ON:Boolean = true;
+      private var HPM_DIALOG_GAP:Number = 40;
+      private var hpmChoiceX0:Number = NaN;
+      private var hpmChoiceFrames:int = 0;
+      private var hpmChoiceListening:Boolean = false;
+
+      public function hpmSetDialog(on:Boolean, gap:Number) : void
+      {
+         this.HPM_DIALOG_ON = on;
+         this.HPM_DIALOG_GAP = Math.max(0,gap);
+         this.hpmPlaceChoices();
+      }
+
+      public function hpmPlaceChoices() : void
+      {
+         var scr:Rectangle = null;
+         var c:OptionContainer = this.mcOptionContainer;
+         var n:int = 0;
+         var i:int = 0;
+         var opt:Option = null;
+         var right:Number = NaN;
+         var r:Number = NaN;
+         var a:* = undefined;
+         var b:* = undefined;
+         if(!c || !c.parent || !stage)
+         {
+            return;
+         }
+         if(isNaN(this.hpmChoiceX0))
+         {
+            this.hpmChoiceX0 = c.x;
+         }
+         if(!this.hpmChoiceListening)
+         {
+            this.hpmChoiceListening = true;
+            addEventListener(Event.ENTER_FRAME,this.hpmChoiceFrame,false,0,true);
+         }
+         if(!this.HPM_DIALOG_ON)
+         {
+            c.x = this.hpmChoiceX0;
+            return;
+         }
+         if(!c.mcOptionList || !c.mcOptionList.dataProvider)
+         {
+            return;
+         }
+         n = Math.min(c.mcOptionList.dataProvider.length,7);
+         i = 0;
+         while(i < n)
+         {
+            opt = c.mcOptionList.getRendererAt(i) as Option;
+            if(opt && opt.tfLine && opt.tfLine.text != "" && opt.tfLine.textWidth > 0)
+            {
+               r = opt.tfLine.localToGlobal(new flash.geom.Point(opt.tfLine.textWidth + 4,0)).x;
+               if(isNaN(right) || r > right)
+               {
+                  right = r;
+               }
+            }
+            i++;
+         }
+         if(isNaN(right))
+         {
+            return;
+         }
+         scr = CommonUtils.getScreenRect();
+         if(!scr || scr.width <= 0)
+         {
+            scr = new Rectangle(0,0,stage.stageWidth,stage.stageHeight);
+         }
+         if(Math.abs(scr.right - this.HPM_DIALOG_GAP - right) < 0.5)
+         {
+            return;
+         }
+         a = c.parent.globalToLocal(new flash.geom.Point(right,0));
+         b = c.parent.globalToLocal(new flash.geom.Point(scr.right - this.HPM_DIALOG_GAP,0));
+         c.x += b.x - a.x;
+      }
+
+      // cheap: only while the choices show, every 10th frame
+      private function hpmChoiceFrame(e:Event) : void
+      {
+         if(!this.mcOptionContainer || !this.mcOptionContainer.visible)
+         {
+            return;
+         }
+         this.hpmChoiceFrames++;
+         if(this.hpmChoiceFrames >= 10)
+         {
+            this.hpmChoiceFrames = 0;
+            this.hpmPlaceChoices();
+         }
+      }

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- HUD Position Manager (formerly Square Minimap): Options > Mods > HUD Position Manager (and the same page in Apocrypha
      Menu Framework). Values are the HUD's own units (1920 x 1080 screen), except Zoom (percent of the game's own minimap
-     zoom). HUDPositionManager.ws reads them twice a second, so a change shows at once. An empty value means the default:
+     zoom). HUDPositionManager.ws reads them twice a second, so a change shows at once (the dialogue choices: from the next
+     set of choices). An empty value means the default:
        Top 4, Right 4 (the square moves further in when the quest text centred under it needs the room), QuestGap 8,
-       Zoom 100, PlayerLeft 20, PlayerBottom 20 (the player widget in the bottom left - the owner, 2026-10-07).
+       Zoom 100, PlayerLeft 8, PlayerBottom 8 (the player widget in the bottom left - the owner, 2026-10-07),
+       ItemsLeft 8, ItemsTop 8 (the quick items in the top left), DialogueRight on, DialogueGap 40 (the dialogue choices
+       on the right, their longest line 40 units from the edge).
      Sliders move one unit per nudge (rule: steps = max - min). -->
 <UserConfig>
 	<Group id="HUDPositionManager" displayName="Mods.sqm_menu">
@@ -14,6 +17,10 @@
 			<Var id="QuestGap" displayName="sqm_quest_gap" displayType="SLIDER;0;100;100"/>
 			<Var id="PlayerLeft" displayName="sqm_player_left" displayType="SLIDER;0;1800;1800"/>
 			<Var id="PlayerBottom" displayName="sqm_player_bottom" displayType="SLIDER;0;1000;1000"/>
+			<Var id="ItemsLeft" displayName="sqm_items_left" displayType="SLIDER;0;1800;1800"/>
+			<Var id="ItemsTop" displayName="sqm_items_top" displayType="SLIDER;0;1000;1000"/>
+			<Var id="DialogueRight" displayName="sqm_dialogue_right" displayType="TOGGLE"/>
+			<Var id="DialogueGap" displayName="sqm_dialogue_gap" displayType="SLIDER;0;600;600"/>
 		</VisibleVars>
 	</Group>
 </UserConfig>

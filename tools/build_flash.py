@@ -11,6 +11,7 @@ Movies (MOVIES below), each built the same way - the pipeline of Simple Loadout 
    into dist\\Mods\\modHUDPositionManager\\content - this mod's own bundle.
    hud_minimap2      the square minimap, its zoom, the quest list under it, the player widget's place
    hud_wolfstatbars  the player widget's straight stamina / adrenaline / toxicity bars (2026-10-07)
+   hud_dialog        the dialogue choices on the right of the screen (2026-10-07)
 
 Only our own code is kept in the repository; CD PROJEKT RED's movies and their decompiled classes are read from the
 player's REDkit install at build time and never committed. wcc_lite runs with -agreetoterms (the owner accepted the
@@ -40,6 +41,7 @@ MINIMAP_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display
 WOLF_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display.GradientType;\n"
                 "   import flash.display.Shape;\n   import flash.display.Sprite;\n   import flash.geom.Matrix;\n"
                 "   import flash.geom.Rectangle;\n   ")
+DIALOG_IMPORTS = "import flash.geom.Rectangle;\n   import red.game.witcher3.utils.CommonUtils;\n   "
 
 # every anchor must occur exactly once in FFDec's decompiled class: (anchor, text inserted, "before" | "after")
 MOVIES = [
@@ -72,6 +74,16 @@ MOVIES = [
             ("            this.mcToxicityBar.value = param1 * 100;\n", "            this.hpmSet(2,param1 * 100);\n",
              "after"),
             ("         this.isCiriMainPlayer = param1;\n", "         this.hpmCiri(param1);\n", "after"),
+        ],
+    },
+    {
+        "swf": "hud_dialog",
+        "class": "red.game.witcher3.hud.modules.HudModuleDialog",
+        "ours": os.path.join("flash", "hpm_dialog.as.txt"),
+        "hooks": [
+            ("import flash.display.MovieClip;\n", DIALOG_IMPORTS, "before"),
+            # the choices are placed once the game has filled the lines
+            ("         this.mcOptionContainer.ChoicesSet(param1);\n", "         this.hpmPlaceChoices();\n", "after"),
         ],
     },
 ]

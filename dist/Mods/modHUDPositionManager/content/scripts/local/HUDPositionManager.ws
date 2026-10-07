@@ -7,7 +7,10 @@
 // values (Options > Mods > HUD Position Manager, HUD units of a 1920 x 1080 screen):
 //   Top, Right      the square's distance from the screen's top and right edges
 //   QuestGap        the gap between the square and the quest list under it
-//   PlayerLeft, PlayerBottom   the player widget's distance from the left and bottom edges
+//   PlayerLeft, PlayerBottom   the player widget's distance from the left and bottom edges (8 / 8 since 2026-10-07)
+//   ItemsLeft, ItemsTop        the quick items' (potions, consumables) distance from the left and top edges
+//   DialogueRight, DialogueGap the dialogue choices moved to the right, their longest line DialogueGap from the edge
+//                              (handed to the dialogue movie, hud_dialog, whenever the game sets the choices)
 // and applies Zoom (a percentage of the game's own minimap zoom). Read when the module starts and twice a second after,
 // and passed on only when one changed. Annotations only: no game script replaced. Log channel 'HUDPositionManager'.
 // =====================================================================================================================
@@ -17,6 +20,9 @@ var sqmFxSettings : CScriptedFlashFunction;
 
 @addField(CR4HudModuleMinimap2)
 var sqmFxPlayer : CScriptedFlashFunction;
+
+@addField(CR4HudModuleMinimap2)
+var sqmFxItems : CScriptedFlashFunction;
 
 @addField(CR4HudModuleMinimap2)
 var sqmSettingsTimer : float;
@@ -33,7 +39,7 @@ function SQM_Setting(cfg : CInGameConfigWrapper, id : name, defaultValue : float
 		return defaultValue;
 	}
 	v = cfg.GetVarValue('HUDPositionManager', id);
-	if (v == "")
+	if (v == "" || v == "-1")
 	{
 		return defaultValue;
 	}
@@ -83,13 +89,14 @@ function SQM_RefreshTiles(zoomValue : float)
 function SQM_PushSettings(force : bool)
 {
 	var cfg : CInGameConfigWrapper;
-	var top, right, gap, zoom, pleft, pbottom : float;
+	var top, right, gap, zoom, pleft, pbottom, ileft, itop : float;
 	var sig : string;
 
 	if (!sqmFxSettings)
 	{
 		sqmFxSettings = GetModuleFlash().GetMemberFlashFunction("sqmSetSettings");
 		sqmFxPlayer = GetModuleFlash().GetMemberFlashFunction("sqmSetPlayer");
+		sqmFxItems = GetModuleFlash().GetMemberFlashFunction("sqmSetItems");
 		if (!sqmFxSettings)
 		{
 			return;
@@ -100,10 +107,12 @@ function SQM_PushSettings(force : bool)
 	right = SQM_Setting(cfg, 'Right', 4);
 	gap = SQM_Setting(cfg, 'QuestGap', 8);
 	zoom = ClampF(SQM_Setting(cfg, 'Zoom', 100), 50, 300);
-	pleft = SQM_Setting(cfg, 'PlayerLeft', 20);
-	pbottom = SQM_Setting(cfg, 'PlayerBottom', 20);
+	pleft = SQM_Setting(cfg, 'PlayerLeft', 8);
+	pbottom = SQM_Setting(cfg, 'PlayerBottom', 8);
+	ileft = SQM_Setting(cfg, 'ItemsLeft', 8);
+	itop = SQM_Setting(cfg, 'ItemsTop', 8);
 	sig = FloatToString(top) + "/" + FloatToString(right) + "/" + FloatToString(gap) + "/" + FloatToString(zoom)
-		+ "/" + FloatToString(pleft) + "/" + FloatToString(pbottom);
+		+ "/" + FloatToString(pleft) + "/" + FloatToString(pbottom) + "/" + FloatToString(ileft) + "/" + FloatToString(itop);
 	if (!force && sig == sqmLastSettings)
 	{
 		return;
@@ -114,6 +123,10 @@ function SQM_PushSettings(force : bool)
 	{
 		sqmFxPlayer.InvokeSelfTwoArgs(FlashArgNumber(pleft), FlashArgNumber(pbottom));
 	}
+	if (sqmFxItems)
+	{
+		sqmFxItems.InvokeSelfTwoArgs(FlashArgNumber(ileft), FlashArgNumber(itop));
+	}
 	if (sqmZoomFactor != zoom / 100)
 	{
 		sqmZoomFactor = zoom / 100;
@@ -121,7 +134,8 @@ function SQM_PushSettings(force : bool)
 	}
 	LogChannel('HUDPositionManager', "settings: minimap top " + FloatToString(top) + ", right " + FloatToString(right)
 		+ ", quest gap " + FloatToString(gap) + ", zoom " + FloatToString(zoom) + "%; player widget left "
-		+ FloatToString(pleft) + ", bottom " + FloatToString(pbottom));
+		+ FloatToString(pleft) + ", bottom " + FloatToString(pbottom) + "; quick items left " + FloatToString(ileft)
+		+ ", top " + FloatToString(itop));
 }
 
 @wrapMethod(CR4HudModuleMinimap2)
@@ -159,7 +173,10 @@ var sqmDefaultsWritten : bool;
 @addMethod(CR4Game)
 function SQM_Default(cfg : CInGameConfigWrapper, id : name, value : string) : bool
 {
-	if (cfg.GetVarValue('HUDPositionManager', id) != "")
+	var v : string;
+
+	v = cfg.GetVarValue('HUDPositionManager', id);
+	if (v != "" && v != "-1")
 	{
 		return false;
 	}
@@ -187,13 +204,18 @@ public function SQM_EnsureDefaults()
 	wrote = SQM_Default(cfg, 'Right', "4") || wrote;
 	wrote = SQM_Default(cfg, 'QuestGap', "8") || wrote;
 	wrote = SQM_Default(cfg, 'Zoom', "100") || wrote;
-	wrote = SQM_Default(cfg, 'PlayerLeft', "20") || wrote;
-	wrote = SQM_Default(cfg, 'PlayerBottom', "20") || wrote;
+	wrote = SQM_Default(cfg, 'PlayerLeft', "8") || wrote;
+	wrote = SQM_Default(cfg, 'PlayerBottom', "8") || wrote;
+	wrote = SQM_Default(cfg, 'ItemsLeft', "8") || wrote;
+	wrote = SQM_Default(cfg, 'ItemsTop', "8") || wrote;
+	wrote = SQM_Default(cfg, 'DialogueRight', "true") || wrote;
+	wrote = SQM_Default(cfg, 'DialogueGap', "40") || wrote;
 	if (wrote)
 	{
 		SaveUserSettings();
 		LogChannel('HUDPositionManager', "settings: empty values got their defaults (minimap top 4, right 4, quest gap "
-			+ "8, zoom 100%; player widget left 20, bottom 20)");
+			+ "8, zoom 100%; player widget left 8, bottom 8; quick items left 8, top 8; dialogue choices on the right, "
+			+ "gap 40)");
 	}
 }
 
@@ -209,4 +231,55 @@ function OnConfigUI()
 {
 	theGame.SQM_EnsureDefaults();
 	return wrappedMethod();
+}
+
+// The dialogue choices on the right (the owner, 2026-10-07: "move the dialogue selections to the right of the screen so
+// they don't block the view of the person you're talking to"). The dialogue movie (hud_dialog, rebuilt by
+// tools/build_flash.py) moves the choice list; this hands it the page's switch and gap each time the game sets the
+// choices, so a change on the page applies from the next set of choices.
+@addField(CR4HudModuleDialog)
+var hpmFxDialog : CScriptedFlashFunction;
+
+@addMethod(CR4HudModuleDialog)
+function HPM_PushDialog()
+{
+	var cfg : CInGameConfigWrapper;
+	var v : string;
+	var on : bool;
+	var gap : float;
+
+	if (!hpmFxDialog)
+	{
+		hpmFxDialog = GetModuleFlash().GetMemberFlashFunction("hpmSetDialog");
+		if (!hpmFxDialog)
+		{
+			return;
+		}
+	}
+	cfg = theGame.GetInGameConfigWrapper();
+	on = true;
+	if (cfg)
+	{
+		v = cfg.GetVarValue('HUDPositionManager', 'DialogueRight');
+		on = !(v == "false" || v == "0");
+	}
+	gap = ClampF(SQM_Setting(cfg, 'DialogueGap', 40), 0, 600);
+	hpmFxDialog.InvokeSelfTwoArgs(FlashArgBool(on), FlashArgNumber(gap));
+}
+
+@wrapMethod(CR4HudModuleDialog)
+function OnConfigUI()
+{
+	var r : bool;
+
+	r = wrappedMethod();
+	HPM_PushDialog();
+	return r;
+}
+
+@wrapMethod(CR4HudModuleDialog)
+function OnDialogChoicesSet(choices : array< SSceneChoice >, alternativeUI : bool)
+{
+	HPM_PushDialog();
+	wrappedMethod(choices, alternativeUI);
 }

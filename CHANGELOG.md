@@ -25,6 +25,18 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
   toxicity's (at its bar's left end, as in the game), the sign badge beside it. A second movie, hud_wolfstatbars, is
   now built into the same bundle. Checked in game (the potion's toxicity fills the green bar). Reopened: untested
   again until the owner has seen it.
+- Then three more (the owner, 2026-10-07), built, not yet seen in game:
+  - **Dialogue choices on the right** ("so they don't block the view of the person you're talking to"): a third movie,
+    hud_dialog, moves the choice list sideways so its longest line ends 40 HUD units from the screen's right edge; the
+    lines stay left aligned with each other and keep their icons and arrow. A switch and the gap on the settings page
+    (Dialogue choices on the right / distance from the right); off = the game's own place. A line long enough to wrap
+    (540 units) still starts where the game's would.
+  - **The player widget all the way into the bottom left** ("a little bit of space in between either side of the screen
+    but it needs to be further left"): default distances 8 / 8 (were 20 / 20).
+  - **The quick items in the top left** (the potions and consumables, "not the quick wheel"): the game's ItemInfoModule
+    placed 8 / 8 from the screen's left and top edges by the box of all its slots and hints, shown or not, so the slots
+    do not jump when a hint appears and the hints keep their room under the top edge. Distances on the settings page.
+  - Settings rows that were never set ("-1") count as empty, so they take their defaults.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 
