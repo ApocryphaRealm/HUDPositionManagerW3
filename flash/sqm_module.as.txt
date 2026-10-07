@@ -84,17 +84,10 @@
          side = Math.max(c.width,c.height);
          this.sqmRect = new Rectangle(c.x + c.width / 2 - side / 2,c.y + c.height / 2 - side / 2,side,side);
          this.sqmRing = this.sqmFindRing();
-         if(this.sqmRing)
-         {
-            c = this.sqmRing.getBounds(this);
-            side = Math.max(c.width,c.height);
-            this.sqmFrameRect = new Rectangle(c.x + c.width / 2 - side / 2,c.y + c.height / 2 - side / 2,side,side);
-         }
-         else
-         {
-            this.sqmFrameRect = this.sqmRect.clone();
-            this.sqmFrameRect.inflate(2,2);
-         }
+         // the frame is the square grown by the line's width on every side, so the line shows evenly all round (the
+         // ring art is not centred on the map: its line was thick on two sides and covered on the top and right)
+         this.sqmFrameRect = this.sqmRect.clone();
+         this.sqmFrameRect.inflate(SQM_LINE_WIDTH,SQM_LINE_WIDTH);
          this.sqmMaskCommon = this.sqmSquare(this.sqmRect);
          this.sqmMaskHub = this.sqmSquare(this.sqmRect);
          this.sqmMaskInterior = this.sqmSquare(this.sqmRect);
@@ -191,7 +184,7 @@
       {
          var scr:Rectangle = this.sqmScreen();
          var corner:* = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,this.sqmFrameRect.top));
-         var target:* = new flash.geom.Point(scr.right - SQM_EDGE_RIGHT,scr.top + SQM_EDGE_TOP);
+         var target:* = new flash.geom.Point(scr.right - SQM_EDGE_RIGHT - this.sqmQuestOver,scr.top + SQM_EDGE_TOP);
          var a:* = parent.globalToLocal(corner);
          var b:* = parent.globalToLocal(target);
          this.x += b.x - a.x;
@@ -199,7 +192,12 @@
          this.sqmLastX = this.x;
          this.sqmLastY = this.y;
          this.sqmLastW = stage.stageWidth;
-         this.sqmPlaceQuests();
+         if(!this.sqmPlacing)
+         {
+            this.sqmPlacing = true;
+            this.sqmPlaceQuests();
+            this.sqmPlacing = false;
+         }
       }
 
       // the quest list directly underneath the square (the owner, 2026-10-06: "I want the quests area moved directly
@@ -212,9 +210,13 @@
       // units. The owner, 2026-10-06, after the first builds: "move the minimap out from both sides until the frame is
       // shown and the quest widget is clearly visible" - defaults 20 / 20 / 8, and a settings page to tune them
       // (SquareMinimap.ws passes them in through sqmSetSettings)
-      private var SQM_EDGE_TOP:Number = 20;
-      private var SQM_EDGE_RIGHT:Number = 20;
+      private var SQM_EDGE_TOP:Number = 4;
+      private var SQM_EDGE_RIGHT:Number = 4;
       private var SQM_QUEST_GAP:Number = 8;
+      // how far the centred quest text reaches past each side of the square (the widest seen this session - it only
+      // grows, so the square does not jump back and forth as quests change); the square moves in by that much
+      private var sqmQuestOver:Number = 0;
+      private var sqmPlacing:Boolean = false;
 
       public function sqmSetSettings(top:Number, right:Number, gap:Number) : void
       {
@@ -334,7 +336,7 @@
       private function sqmPlaceQuests() : void
       {
          var bottom:* = undefined;
-         var centre:* = undefined;
+         var over:Number = NaN;
          var wantY:Number = NaN;
          var wantX:Number = NaN;
          var p:* = undefined;
@@ -369,10 +371,19 @@
          bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
          wantY = bottom.y + SQM_QUEST_GAP;
          wantX = bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2;
-         // never past the screen's right edge (a line wider than the square still shows whole)
-         if(wantX + (this.sqmBoxR - this.sqmBoxL) > this.sqmScreen().right - SQM_EDGE_RIGHT)
+         // centred exactly; if the text is wider than the square, the square itself moves in from the right edge far
+         // enough for the whole text to show (the owner, 2026-10-06: "move the minimap to where it's far enough away
+         // from the side so that the quest widget can properly display the words while it's centered")
+         over = (this.sqmBoxR - this.sqmBoxL - (this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.right,0)).x - this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.left,0)).x)) / 2;
+         if(over > this.sqmQuestOver + 0.5)
          {
-            wantX = this.sqmScreen().right - SQM_EDGE_RIGHT - (this.sqmBoxR - this.sqmBoxL);
+            this.sqmQuestOver = over;
+            this.sqmPlacing = true;
+            this.sqmPlace();
+            this.sqmPlacing = false;
+            bottom = this.localToGlobal(new flash.geom.Point(this.sqmFrameRect.x + this.sqmFrameRect.width / 2,this.sqmFrameRect.bottom));
+            wantY = bottom.y + SQM_QUEST_GAP;
+            wantX = bottom.x - (this.sqmBoxR - this.sqmBoxL) / 2;
          }
          if(Math.abs(this.sqmBoxT - wantY) < 0.5 && Math.abs(this.sqmBoxL - wantX) < 0.5)
          {

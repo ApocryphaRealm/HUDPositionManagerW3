@@ -3,7 +3,8 @@
      the placement (the owner, 2026-10-06: "give it an in-game settings page just to make editing it more easy for
      testing"). Values are the HUD's own units (1920 x 1080 screen). The script reads them twice a second and passes
      them to the minimap movie, so a change shows at once. An empty value means the default (SquareMinimap.ws):
-       Top 20, Right 20, QuestGap 8. -->
+       Top 4, Right 4 (the smallest gap; the square moves further in
+       when the quest text centred under it needs the room), QuestGap 8. -->
 <UserConfig>
 	<Group id="SquareMinimap" displayName="Mods.sqm_menu">
 		<VisibleVars>

@@ -49,8 +49,8 @@ function SQM_PushSettings(force : bool)
 		}
 	}
 	cfg = theGame.GetInGameConfigWrapper();
-	top = SQM_Setting(cfg, 'Top', 20);
-	right = SQM_Setting(cfg, 'Right', 20);
+	top = SQM_Setting(cfg, 'Top', 4);
+	right = SQM_Setting(cfg, 'Right', 4);
 	gap = SQM_Setting(cfg, 'QuestGap', 8);
 	sig = FloatToString(top) + "/" + FloatToString(right) + "/" + FloatToString(gap);
 	if (!force && sig == sqmLastSettings)
@@ -111,13 +111,13 @@ public function SQM_EnsureDefaults()
 	{
 		return;
 	}
-	if (cfg.GetVarValue('SquareMinimap', 'Top') == "") { cfg.SetVarValue('SquareMinimap', 'Top', "20"); wrote = true; }
-	if (cfg.GetVarValue('SquareMinimap', 'Right') == "") { cfg.SetVarValue('SquareMinimap', 'Right', "20"); wrote = true; }
+	if (cfg.GetVarValue('SquareMinimap', 'Top') == "") { cfg.SetVarValue('SquareMinimap', 'Top', "4"); wrote = true; }
+	if (cfg.GetVarValue('SquareMinimap', 'Right') == "") { cfg.SetVarValue('SquareMinimap', 'Right', "4"); wrote = true; }
 	if (cfg.GetVarValue('SquareMinimap', 'QuestGap') == "") { cfg.SetVarValue('SquareMinimap', 'QuestGap', "8"); wrote = true; }
 	if (wrote)
 	{
 		SaveUserSettings();
-		LogChannel('SquareMinimap', "settings: empty values got their defaults (top 20, right 20, quest gap 8)");
+		LogChannel('SquareMinimap', "settings: empty values got their defaults (top 4, right 4, quest gap 8)");
 	}
 }
 
