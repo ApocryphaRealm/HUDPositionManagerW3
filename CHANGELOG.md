@@ -71,6 +71,26 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
     Place is never touched, and only changed elements are looked at each frame.
   - Not yet: Show every element (preview), snapping and collision, the bars' Fill from / Grows toward, the damage
     direction indicator (phase 3); the page's eleven-language files.
+- Then the player widget broken up into its parts (the owner, 2026-10-07: "the player widget is a combined widget which
+  should be broken up into its individual parts, not as a single widget that can be added to the combined widget"):
+  - "Player widget" is no longer an element of the page. Its parts each are: Medallion and Health bar (new), Stamina,
+    Adrenaline and Toxicity bars, Sign badge, Toxicity skull - each with its own move, size (Length / Height for the
+    bars), Hide, Show in / out of combat, Always visible and Move with, and each can join the Combined widgets or be
+    followed by another widget. The widget's start place stays one switch, shown on every part's tab ("Player widget in
+    the bottom left corner", shared). The game's own pieces of each part sit in a container of ours, so the game still
+    shows and hides what is inside (the level-up mark, the sign text, Ciri's skull).
+  - Always visible per part: while a part is set to stay, the widget is not let fade; the parts not set to stay hide
+    instead and come back when the game shows the widget.
+  - A settings file or preset that moved, sized, hid or grouped the player widget as a whole gives that to every part.
+  - The page's move sliders for the parts take their range from each part's box (the player widget's movie reports them).
+- Fixes (the owner, 2026-10-07):
+  - The HUD-wide "Always visible" could not be switched off: the widgets it held stayed up. Holding called each
+    module's own fade-in, so the game counted it as shown and, with nothing new to show, never faded it again. Letting
+    go now hands each module back to its display state (the fade-out timer started again, or faded at once when it is
+    set to hide or to show on demand).
+  - The toxicity skull did not come back after Hide was switched off (its pieces were left see-through; only the sign
+    badge's were restored). The parts now hide and show as a whole.
+  - Eleven languages: 101 keys.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 

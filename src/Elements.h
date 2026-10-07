@@ -29,6 +29,9 @@ namespace elements
 		const char* placeKey = nullptr;
 		const char* placeEnglish = nullptr;
 		bool        placeDefault = false;   // that place is the default
+		// not on the page: the player widget as a whole, which only carries its parts' shared start place (the owner,
+		// 2026-10-07: the player widget is broken up into its parts, not one widget that joins the Combined widgets)
+		bool        internal = false;
 	};
 
 	inline const std::vector<Element>& All()
@@ -38,14 +41,18 @@ namespace elements
 			{ .key = "Minimap", .english = "Minimap", .module = "Minimap2Module", .fades = true, .placeKey = "HPM_PlaceTopRight", .placeEnglish = "Top right corner", .placeDefault = true },
 			// the quest list, centred under the minimap by default
 			{ .key = "Quests", .english = "Quest list", .module = "QuestsModule", .fades = true, .placeKey = "HPM_PlaceUnderMinimap", .placeEnglish = "Under the minimap", .placeDefault = true },
-			// the player widget: medallion, vitality and the bars under it; bottom left by default (the owner, 2026-10-07)
-			{ .key = "Player", .english = "Player widget", .module = "WolfHeadModule", .fades = true, .placeKey = "HPM_PlaceBottomLeft", .placeEnglish = "Bottom left corner", .placeDefault = true },
-			// its parts, drawn by this mod in hud_wolfstatbars (moved inside the widget, on top of the widget's own place)
-			{ .key = "Stamina", .english = "Stamina bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .bar = true },
-			{ .key = "Adrenaline", .english = "Adrenaline bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .bar = true },
-			{ .key = "Toxicity", .english = "Toxicity bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .bar = true },
-			{ .key = "Sign", .english = "Sign badge", .module = nullptr, .movie = Movie::kWolf },
-			{ .key = "Skull", .english = "Toxicity skull", .module = nullptr, .movie = Movie::kWolf },
+			// the player widget as a whole: never on the page - it only holds where its parts start (bottom left by default,
+			// the owner, 2026-10-07; the "Place" switch every part's tab shows), and the minimap movie places it there
+			{ .key = "Player", .english = "Player widget", .module = "WolfHeadModule", .placeKey = "HPM_PlaceBottomLeft", .placeEnglish = "Bottom left corner", .placeDefault = true, .internal = true },
+			// its parts (the owner, 2026-10-07: "the player widget is a combined widget which should be broken up into its
+			// individual parts"), each an element of its own, moved, sized and shown in hud_wolfstatbars
+			{ .key = "Medallion", .english = "Medallion", .module = nullptr, .movie = Movie::kWolf, .fades = true },
+			{ .key = "Health", .english = "Health bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true },
+			{ .key = "Stamina", .english = "Stamina bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
+			{ .key = "Adrenaline", .english = "Adrenaline bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
+			{ .key = "Toxicity", .english = "Toxicity bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
+			{ .key = "Sign", .english = "Sign badge", .module = nullptr, .movie = Movie::kWolf, .fades = true },
+			{ .key = "Skull", .english = "Toxicity skull", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			// the effects (food, potions, oils): just above the player widget by default
 			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .fades = true, .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget", .placeDefault = true },
 			{ .key = "QuickItems", .english = "Quick items", .module = "ItemInfoModule", .fades = true, .placeKey = "HPM_PlaceTopLeft", .placeEnglish = "Top left corner", .placeDefault = true },
@@ -72,6 +79,11 @@ namespace elements
 	}
 
 	inline std::size_t Count() { return All().size(); }
+
+	// a widget the page lists on its own and that can join the Combined widgets / be followed with "Move with": every whole
+	// module and every part of the player widget (the dialogue choices place themselves only)
+	inline bool Standalone(const Element& a_el) { return !a_el.internal && (a_el.module || a_el.movie == Movie::kWolf); }
+	inline bool WolfPart(const Element& a_el) { return !a_el.module && a_el.movie == Movie::kWolf; }
 
 	inline int IndexOf(std::string_view a_key)
 	{

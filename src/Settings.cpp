@@ -70,9 +70,56 @@ namespace settings
 			return out;
 		}
 
+		// The player widget was one element until 2026-10-07 (the owner: "broken up into its individual parts, not as a
+		// single widget that can be added to the combined widget"). A settings file or preset that moved, sized or hid it as
+		// a whole gives that to every part instead, and the whole goes back to its defaults (only its Place stays, the parts'
+		// shared start). Runs inside Clamp, so the INI, presets and the 1.0.0 import all pass through it; once done it finds
+		// the whole at its defaults and does nothing.
+		void MigratePlayer(Values& a_v)
+		{
+			const int p = elements::IndexOf("Player");
+			if (p < 0) return;
+			auto&      w = a_v.elements[static_cast<std::size_t>(p)];
+			const auto d = DefaultElement(static_cast<std::size_t>(p));
+			const bool inGroup = a_v.group.Has("Player");
+			if (w.x == d.x && w.y == d.y && w.scale == 1.0f && !w.hide && w.show == 0 && !w.alwaysVisible && w.moveWith.empty() && !inGroup) {
+				return;
+			}
+			const float dx = w.x - d.x, dy = w.y - d.y;
+			std::vector<std::string> parts;
+			for (std::size_t i = 0; i < a_v.elements.size(); ++i) {
+				const auto& el = elements::All()[i];
+				if (!elements::WolfPart(el)) continue;
+				auto& e = a_v.elements[i];
+				e.x += dx;
+				e.y += dy;
+				e.scale *= w.scale;
+				e.hide = e.hide || w.hide;
+				if (e.show == 0) e.show = w.show;
+				e.alwaysVisible = e.alwaysVisible || w.alwaysVisible;
+				if (e.moveWith.empty()) e.moveWith = w.moveWith;
+				parts.emplace_back(el.key);
+			}
+			if (inGroup) {
+				std::erase(a_v.group.members, std::string("Player"));
+				for (const auto& k : parts) {
+					if (!a_v.group.Has(k)) a_v.group.members.push_back(k);
+				}
+			}
+			for (auto& e : a_v.elements) {   // what followed the whole follows its medallion
+				if (e.moveWith == "Player") e.moveWith = "Medallion";
+			}
+			logger::info("settings: the player widget's own move ({:.2f}, {:.2f}), size {:.2f}{}{} given to its {} parts", dx, dy, w.scale,
+				w.hide ? ", hidden" : "", inGroup ? ", Combined widgets" : "", parts.size());
+			const bool place = w.place;
+			w = d;
+			w.place = place;
+		}
+
 		void Clamp(Values& a_v)
 		{
 			a_v.elements.resize(elements::Count());
+			MigratePlayer(a_v);
 			for (std::size_t i = 0; i < a_v.elements.size(); ++i) {
 				const auto& el = elements::All()[i];
 				auto&       e = a_v.elements[i];
@@ -84,14 +131,18 @@ namespace settings
 				e.show = std::clamp(e.show, 0, 2);
 				if (!el.fades) e.alwaysVisible = false;
 				if (!el.placeKey) e.place = false;
-				if (!e.moveWith.empty() && (elements::IndexOf(e.moveWith) < 0 || e.moveWith == el.key)) e.moveWith.clear();
+				if (const int w = e.moveWith.empty() ? -1 : elements::IndexOf(e.moveWith);
+					!e.moveWith.empty() && (w < 0 || e.moveWith == el.key || !elements::Standalone(elements::All()[static_cast<std::size_t>(w)]) || !elements::Standalone(el))) {
+					e.moveWith.clear();
+				}
 				e.fill = el.bar ? std::clamp(e.fill, 0, 3) : 0;
 				e.grow = el.bar ? std::clamp(e.grow, 0, 2) : 0;
 				e.zoom = std::clamp(std::round(e.zoom), kZoomMin, kZoomMax);
 			}
 			std::vector<std::string> members;
 			for (const auto& m : a_v.group.members) {
-				if (elements::IndexOf(m) >= 0 && std::ranges::find(members, m) == members.end()) members.push_back(m);
+				const int k = elements::IndexOf(m);
+				if (k >= 0 && elements::Standalone(elements::All()[static_cast<std::size_t>(k)]) && std::ranges::find(members, m) == members.end()) members.push_back(m);
 			}
 			a_v.group.members = std::move(members);
 			a_v.group.x = std::clamp(a_v.group.x, -kMoveX, kMoveX);

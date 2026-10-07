@@ -149,7 +149,8 @@ namespace page
 			const std::string k = a_i < elements::Count() ? elements::All()[a_i].key : "";
 			if (k == "Minimap") return TR("HPM_El_Minimap", "Minimap");
 			if (k == "Quests") return TR("HPM_El_Quests", "Quest list");
-			if (k == "Player") return TR("HPM_El_Player", "Player widget");
+			if (k == "Medallion") return TR("HPM_El_Medallion", "Medallion");
+			if (k == "Health") return TR("HPM_El_Health", "Health bar");
 			if (k == "Stamina") return TR("HPM_El_Stamina", "Stamina bar");
 			if (k == "Adrenaline") return TR("HPM_El_Adrenaline", "Adrenaline bar");
 			if (k == "Toxicity") return TR("HPM_El_Toxicity", "Toxicity bar");
@@ -223,6 +224,19 @@ namespace page
 				Hint(TR("HPM_Found", "In your HUD. Changes show at once."));
 			}
 			bool changed = false;
+			if (elements::WolfPart(el)) {
+				// where the player widget's parts start: one switch, shared by every part (it belongs to the widget as a whole)
+				Hint(TR("HPM_WolfPartHint", "One part of the player widget, on its own: it moves, sizes and hides by itself. Pick it on the Combined widgets tab to move it together with other parts or widgets."));
+				if (const int p = elements::IndexOf("Player"); p >= 0) {
+					bool place = a_v.elements[static_cast<std::size_t>(p)].place;
+					if (Switch((std::string(TR("HPM_PlayerPlace", "Player widget in the bottom left corner")) + id + "pp").c_str(), &place)) {
+						settings::Update([&](settings::Values& s) { s.elements[static_cast<std::size_t>(p)].place = place; });
+						logger::info("page: the player widget's parts start {}", place ? "in the bottom left corner" : "where the game puts them");
+					}
+					Hint(place ? TR("HPM_PlayerPlaceOnHint", "Shared by all its parts. The parts start from the bottom left corner; the sliders below move this one from there.")
+					           : TR("HPM_PlayerPlaceOffHint", "Shared by all its parts. Off: the parts start where the game puts the player widget."));
+				}
+			}
 			if (el.placeKey) {
 				changed |= Switch((std::string(PlaceName(el)) + id + "p").c_str(), &e.place);
 				Hint(e.place ? TR("HPM_PlaceOnHint", "Placed there by this mod; the sliders below move it from that spot.")
@@ -270,19 +284,20 @@ namespace page
 			}
 			if (el.fades) {
 				changed |= Switch((std::string(TR("HPM_AlwaysOne", "Always visible")) + id + "a").c_str(), &e.alwaysVisible);
-				Hint(TR("HPM_AlwaysOneHint", "The game fades this out on its own. On: it stays shown while you play."));
+				Hint(elements::WolfPart(el) ? TR("HPM_AlwaysPartHint", "The game fades the player widget out on its own. On: this part stays shown while you play; the parts left off still fade.")
+				                            : TR("HPM_AlwaysOneHint", "The game fades this out on its own. On: it stays shown while you play."));
 			}
-			// move with: nothing, or another element (a part of the player widget moves with it already)
-			std::vector<std::string> labels{ TR("HPM_MoveWithNone", "Nothing - on its own") };
-			std::vector<std::string> keys{ "" };
-			int                      current = 0;
-			for (std::size_t j = 0; j < elements::Count(); ++j) {
-				if (j == a_i || !elements::All()[j].module || !el.module) continue;   // whole modules follow whole modules
-				if (e.moveWith == elements::All()[j].key) current = static_cast<int>(labels.size());
-				labels.emplace_back(ElementName(j));
-				keys.emplace_back(elements::All()[j].key);
-			}
-			if (el.module) {
+			// move with: nothing, or another widget or part (the dialogue choices place themselves only)
+			if (elements::Standalone(el)) {
+				std::vector<std::string> labels{ TR("HPM_MoveWithNone", "Nothing - on its own") };
+				std::vector<std::string> keys{ "" };
+				int                      current = 0;
+				for (std::size_t j = 0; j < elements::Count(); ++j) {
+					if (j == a_i || !elements::Standalone(elements::All()[j])) continue;
+					if (e.moveWith == elements::All()[j].key) current = static_cast<int>(labels.size());
+					labels.emplace_back(ElementName(j));
+					keys.emplace_back(elements::All()[j].key);
+				}
 				std::vector<const char*> ptrs;
 				for (const auto& l : labels) ptrs.push_back(l.c_str());
 				ImGui::SetNextItemWidth(Width());
@@ -290,8 +305,6 @@ namespace page
 					e.moveWith = keys[static_cast<std::size_t>(current)];
 					changed = true;
 				}
-			} else {
-				Hint(TR("HPM_PartHint", "A part of a bigger widget: it moves with it, and these sliders move it inside it."));
 			}
 			if (a_v.group.Has(el.key)) Hint(TR("HPM_InGroupHint", "Also moves with the widgets on the Combined widgets tab."));
 			if (changed) settings::Update([&](settings::Values& s) { s.elements[a_i] = e; });
@@ -311,7 +324,7 @@ namespace page
 			std::vector<std::pair<std::size_t, float>> shift;
 			for (std::size_t i = 0; i < elements::Count(); ++i) {
 				const auto& el = elements::All()[i];
-				if (!el.module) continue;   // whole widgets only
+				if (!elements::Standalone(el)) continue;   // whole widgets and the player widget's parts
 				bool on = group.Has(el.key);
 				if (Switch((std::string(ElementName(i)) + "##grp" + el.key).c_str(), &on)) {
 					if (on) group.members.emplace_back(el.key);
@@ -414,7 +427,7 @@ namespace page
 			}
 			const std::size_t pinned = order.size();
 			for (std::size_t i = 0; i < elements::Count(); ++i) {
-				if (std::ranges::find(order, i) == order.end()) order.push_back(i);
+				if (!elements::All()[i].internal && std::ranges::find(order, i) == order.end()) order.push_back(i);
 			}
 			std::string orderId;
 			for (const auto i : order) orderId += std::to_string(i) + ".";

@@ -113,12 +113,21 @@ function HPM_Update(force : bool)
 	}
 	// combat (the movie waits 3 s after a fight before counting it as over)
 	combat = thePlayer && thePlayer.IsInCombat();
+	hud = (CR4ScriptedHud)theGame.GetHud();
+	if (hud)
+	{
+		wolf = (CR4HudModuleWolfHead)hud.GetHudModule("WolfHeadModule");
+	}
 	if (force || combat != hpmCombatSent)
 	{
 		hpmCombatSent = combat;
 		if (hpmFxCombat)
 		{
 			hpmFxCombat.InvokeSelfOneArg(FlashArgBool(combat));
+		}
+		if (wolf)
+		{
+			wolf.HPM_SetCombat(combat);
 		}
 	}
 	// the layout, when it changed (or the HUD was rebuilt)
@@ -127,10 +136,8 @@ function HPM_Update(force : bool)
 	{
 		hpmLastLayout = layout;
 		hpmFxLayout.InvokeSelfOneArg(FlashArgString(layout));
-		hud = (CR4ScriptedHud)theGame.GetHud();
 		if (hud)
 		{
-			wolf = (CR4HudModuleWolfHead)hud.GetHudModule("WolfHeadModule");
 			if (wolf)
 			{
 				wolf.HPM_SetLayout(layout);
@@ -150,8 +157,12 @@ function HPM_Update(force : bool)
 		LogChannel('HUDPositionManager', "layout from the page applied (" + IntToString(StrLen(layout)) + " characters), minimap zoom "
 			+ FloatToString(zoom) + "%");
 	}
-	// the HUD's report for the page
+	// the HUD's report for the page: the minimap movie's (the modules, the dialogue) and the player widget's parts
 	report = GetModuleFlash().GetMemberFlashString("sqmReport");
+	if (wolf)
+	{
+		report += wolf.HPM_Report();
+	}
 	if (report != "" && report != hpmLastReport)
 	{
 		hpmLastReport = report;
@@ -200,6 +211,43 @@ public function HPM_SetLayout(layout : string)
 		}
 	}
 	hpmFxWolfLayout.InvokeSelfOneArg(FlashArgString(layout));
+}
+
+// Combat, for the parts set to show only in or only out of combat (the movie waits 3 s after a fight).
+@addField(CR4HudModuleWolfHead)
+var hpmFxWolfCombat : CScriptedFlashFunction;
+
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetCombat(combat : bool)
+{
+	if (!hpmFxWolfCombat)
+	{
+		hpmFxWolfCombat = GetModuleFlash().GetMemberFlashFunction("hpmSetCombat");
+		if (!hpmFxWolfCombat)
+		{
+			return;
+		}
+	}
+	hpmFxWolfCombat.InvokeSelfOneArg(FlashArgBool(combat));
+}
+
+// Each part's box on the screen, for the page's slider ranges ("" when the movie is not ours).
+@addField(CR4HudModuleWolfHead)
+var hpmFxWolfReport : CScriptedFlashFunction;
+
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_Report() : string
+{
+	if (!hpmFxWolfReport)
+	{
+		hpmFxWolfReport = GetModuleFlash().GetMemberFlashFunction("hpmMakeReport");
+		if (!hpmFxWolfReport)
+		{
+			return "";
+		}
+	}
+	hpmFxWolfReport.InvokeSelf();
+	return GetModuleFlash().GetMemberFlashString("hpmReport");
 }
 
 // The dialogue movie (hud_dialog): the choice list. Also handed the layout each time the game sets the choices.

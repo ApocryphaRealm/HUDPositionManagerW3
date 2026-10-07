@@ -141,7 +141,6 @@
          this.hpmPlaceBadge(this.mcSignSlot,[this.mcSignSlot,this.mSignReady,this.mcSignText],left - 3,y + (t + gap) + t / 2,1);
          this.hpmPlaceBadge(this.mcSkullBck || this.mcSkull,[this.mcSkullBck,this.mcSkull],left,y + (t + gap) * 2 + t / 2,2);
          tox = !(this.mcSkullBck || this.mcSkull) ? null : DisplayObject(this.mcSkullBck || this.mcSkull).getBounds(this);
-         this.hpmBadgeBases([this.mcSignSlot,this.mSignReady,this.mcSignText],[this.mcSkullBck,this.mcSkull]);
          i = 0;
          while(i < 3)
          {
@@ -169,6 +168,11 @@
             this.hpmRowBase.push([DisplayObject(this.hpmRows[i]).x,DisplayObject(this.hpmRows[i]).y]);
             i++;
          }
+         // the game's own pieces of each other part, each in a container of its own (moved, sized and shown as one)
+         this.hpmWrap(3,[this.mcSignSlot,this.mSignReady,this.mcSignText]);
+         this.hpmWrap(4,[this.mcSkullBck,this.mcSkull]);
+         this.hpmWrap(5,[this.mcBckCircle,this.mcWolfsHead,this.mcNewLevelIndcator,this.mcMutationFeedback]);
+         this.hpmWrap(6,[this.mcHealthBar]);
          this.hpmApplyParts();
          i = 0;
          while(i < 3)
@@ -272,39 +276,74 @@
       }
 
       // ==============================================================================================================
-      // The player widget's parts as elements of the layout (the owner, 2026-10-07: the page organised as the Skyrim and
-      // Oblivion versions are; before that, "move the badges independently of their bars"): the stamina, adrenaline and
-      // toxicity bars and the sign and skull badges each take a move (percent of the screen), a size, a length and height
-      // (the bars) and hide, on top of where hpmBarsInit puts them, inside the widget. The bars are independent of the
-      // badges: the toxicity bar keeps the start it took beside the skull. HUDPositionManager.ws hands the whole layout
-      // string in through hpmSetLayout (the same string as the minimap movie's).
+      // The player widget broken up into its parts (the owner, 2026-10-07: "the player widget is a combined widget which
+      // should be broken up into its individual parts, not as a single widget that can be added to the combined widget").
+      // Each part is an element of the layout on its own: the medallion, the health bar, the stamina, adrenaline and
+      // toxicity bars, the sign badge and the toxicity skull. Each takes a move (percent of the screen), a size (about its
+      // own centre), a length and height (the bars), Hide, Show (always / only in combat / only out of combat), Always
+      // visible, Move with another widget or part, and the Combined widgets group - on top of where hpmBarsInit puts it,
+      // inside the widget, which the minimap movie starts in the bottom left corner. The bars are our own sprites; each
+      // other part is the game's own pieces moved into a container of ours (hpmWrap), so the game keeps showing and
+      // hiding the pieces inside (the level-up mark, the sign text, Ciri's missing skull) and we move the whole.
+      //
+      // Always visible, per part: the game fades the WHOLE widget out a few seconds after its last change. While any shown
+      // part is set to stay, the widget is not let fade (ShowElementFromState below) - the parts not set to stay are hidden
+      // instead, and shown again as soon as the game shows the widget. When none is set, the game fades it as always.
+      // HUDPositionManager.ws hands the whole layout string in through hpmSetLayout (the same string as the minimap's)
+      // and combat through hpmSetCombat, and reads hpmReport (each part's box, for the page's slider ranges).
       // ==============================================================================================================
-      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull"];
+      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Medallion","Health"];
       private var hpmRowBase:Array = [];      // [x, y] per bar, from hpmBarsInit
-      private var hpmBadgeObjs:Array = [];    // [object, base x, base y, 3 sign | 4 skull, base scaleX, base scaleY]
-      private var hpmParts:Array = [null,null,null,null,null];
-      private var hpmPartsOn:Boolean = true;
+      private var hpmBoxes:Array = [null,null,null,null,null,null,null];   // the containers of parts 3..6
+      private var hpmBoxC:Array = [null,null,null,null,null,null,null];    // each container's centre at rest (this widget's units)
+      private var hpmParts:Array = [null,null,null,null,null,null,null];
+      private var hpmOff:Object = {};          // every element's move and group membership, by key ("Move with")
+      private var hpmPartsOn:Boolean = true;   // "Apply my layout"
+      private var hpmAllAlways:Boolean = false;   // the page's "Always visible" for the whole HUD
+      private var hpmGroupX:Number = 0;
+      private var hpmGroupY:Number = 0;
+      private var hpmWant:Boolean = false;     // what the game asked for last: the widget shown (true) or faded (false)
+      private var hpmInCombat:Boolean = false;
+      private var hpmCombatUntil:int = 0;      // out of combat counts once 3 s have passed (as in the minimap movie)
+      public var hpmReport:String = "";
 
-      private function hpmBadgeBases(sign:Array, skull:Array) : void
+      // moves the listed pieces (those that are this widget's own children) into a new container at the topmost one's depth,
+      // keeping their order and their place on the screen
+      private function hpmWrap(k:int, list:Array) : void
       {
-         var g:int = 0;
+         var box:Sprite = null;
+         var found:Array = [];
+         var top:int = -1;
          var i:int = 0;
-         var list:Array = null;
-         this.hpmBadgeObjs = [];
-         while(g < 2)
+         var d:DisplayObject = null;
+         var b:Rectangle = null;
+         while(i < list.length)
          {
-            list = g == 0 ? sign : skull;
-            i = 0;
-            while(i < list.length)
+            d = list[i] as DisplayObject;
+            if(d && d.parent == this)
             {
-               if(list[i])
-               {
-                  this.hpmBadgeObjs.push([list[i],DisplayObject(list[i]).x,DisplayObject(list[i]).y,g + 3,DisplayObject(list[i]).scaleX,DisplayObject(list[i]).scaleY]);
-               }
-               i++;
+               found.push({"d":d,"at":getChildIndex(d)});
+               top = Math.max(top,getChildIndex(d));
             }
-            g++;
+            i++;
          }
+         if(top < 0)
+         {
+            return;
+         }
+         found.sortOn("at",Array.NUMERIC);
+         box = new Sprite();
+         box.mouseEnabled = false;
+         addChildAt(box,top + 1);
+         i = 0;
+         while(i < found.length)
+         {
+            box.addChild(DisplayObject(found[i].d));
+            i++;
+         }
+         b = box.getBounds(this);
+         this.hpmBoxes[k] = box;
+         this.hpmBoxC[k] = new flash.geom.Point(b.x + b.width / 2,b.y + b.height / 2);
       }
 
       public function hpmSetLayout(spec:String) : void
@@ -318,83 +357,260 @@
             return;
          }
          this.hpmPartsOn = parts[1] == "1";
+         this.hpmAllAlways = parts[3] == "1";
+         this.hpmGroupX = Number(parts[5]);
+         this.hpmGroupY = Number(parts[6]);
          i = 7;
          while(i < parts.length)
          {
             f = String(parts[i]).split(",");
             i++;
-            k = HPM_PART_KEYS.indexOf(f[0]);
-            if(k < 0 || f.length < 7)
+            if(f.length < 13)
             {
                continue;
             }
-            this.hpmParts[k] = {"x":Number(f[1]),"y":Number(f[2]),"s":Number(f[3]),"sx":Number(f[4]),"sy":Number(f[5]),"hide":f[6] == "1"};
+            this.hpmOff[f[0]] = {"x":Number(f[1]),"y":Number(f[2]),"group":f[11] == "1"};
+            k = HPM_PART_KEYS.indexOf(f[0]);
+            if(k < 0)
+            {
+               continue;
+            }
+            this.hpmParts[k] = {"key":f[0],"x":Number(f[1]),"y":Number(f[2]),"s":Number(f[3]),"sx":Number(f[4]),"sy":Number(f[5]),
+               "hide":f[6] == "1","show":int(f[7]),"always":f[8] == "1","with":f[10],"group":f[11] == "1"};
          }
          this.hpmApplyParts();
+         this.hpmSyncHold();
+      }
+
+      public function hpmSetCombat(on:Boolean) : void
+      {
+         if(on)
+         {
+            this.hpmInCombat = true;
+            this.hpmCombatUntil = 0;
+            this.hpmSyncHold();
+         }
+         else if(this.hpmInCombat && this.hpmCombatUntil == 0)
+         {
+            this.hpmCombatUntil = flash.utils.getTimer() + 3000;
+            setTimeout(this.hpmSyncHold,3100);
+         }
+      }
+
+      private function hpmCombatNow() : Boolean
+      {
+         if(this.hpmInCombat && this.hpmCombatUntil > 0 && flash.utils.getTimer() >= this.hpmCombatUntil)
+         {
+            this.hpmInCombat = false;
+            this.hpmCombatUntil = 0;
+         }
+         return this.hpmInCombat;
+      }
+
+      // the visible screen (Scaleform's visibleRect - the stage can reach past the screen's edges)
+      private function hpmScreen() : Rectangle
+      {
+         var r:Rectangle = null;
+         try
+         {
+            r = Object(stage).visibleRect as Rectangle;
+         }
+         catch(err:Error)
+         {
+            r = null;
+         }
+         if(!r || r.width <= 0)
+         {
+            r = new Rectangle(0,0,!stage ? 1920 : stage.stageWidth,!stage ? 1080 : stage.stageHeight);
+         }
+         return r;
       }
 
       // percent of the screen -> this widget's own units
       private function hpmLocal(xPct:Number, yPct:Number) : flash.geom.Point
       {
-         var w:Number = !stage ? 1920 : stage.stageWidth;
-         var h:Number = !stage ? 1080 : stage.stageHeight;
+         var scr:Rectangle = this.hpmScreen();
          var a:* = this.globalToLocal(new flash.geom.Point(0,0));
-         var b:* = this.globalToLocal(new flash.geom.Point(xPct / 100 * w,yPct / 100 * h));
+         var b:* = this.globalToLocal(new flash.geom.Point(xPct / 100 * scr.width,yPct / 100 * scr.height));
          return new flash.geom.Point(b.x - a.x,b.y - a.y);
+      }
+
+      // a part's whole move: its own, the Combined widgets' if it is in the group, and the one of what it moves with
+      private function hpmMove(o:Object) : flash.geom.Point
+      {
+         var w:Object = !o["with"] || o["with"] == o.key ? null : this.hpmOff[o["with"]];
+         var x:Number = o.x + (o.group ? this.hpmGroupX : 0) + (!w ? 0 : w.x + (w.group ? this.hpmGroupX : 0));
+         var y:Number = o.y + (o.group ? this.hpmGroupY : 0) + (!w ? 0 : w.y + (w.group ? this.hpmGroupY : 0));
+         return this.hpmLocal(x,y);
       }
 
       private function hpmApplyParts() : void
       {
-         var i:int = 0;
+         var k:int = 0;
          var o:Object = null;
          var d:flash.geom.Point = null;
          var row:DisplayObject = null;
+         var box:DisplayObject = null;
          var b:Rectangle = null;
-         var e:Array = null;
-         var obj:DisplayObject = null;
+         var c:flash.geom.Point = null;
          var sx:Number = NaN;
          var sy:Number = NaN;
-         // the bars
-         i = 0;
-         while(i < this.hpmRows.length && i < this.hpmRowBase.length)
+         while(k < HPM_PART_KEYS.length)
          {
-            row = DisplayObject(this.hpmRows[i]);
-            o = this.hpmPartsOn ? this.hpmParts[i] : null;
+            o = this.hpmPartsOn ? this.hpmParts[k] : null;
             sx = !o ? 1 : o.s * o.sx;
             sy = !o ? 1 : o.s * o.sy;
-            row.scaleX = 1;
-            row.scaleY = 1;
-            b = row.getBounds(row);
-            d = !o ? new flash.geom.Point(0,0) : this.hpmLocal(o.x,o.y);
-            row.scaleX = sx;
-            row.scaleY = sy;
-            // about the bar's own centre
-            row.x = this.hpmRowBase[i][0] + d.x - (b.x + b.width / 2) * (sx - 1);
-            row.y = this.hpmRowBase[i][1] + d.y - (b.y + b.height / 2) * (sy - 1);
-            row.visible = !(o && o.hide) && !(this.hpmIsCiri && i > 0);
-            i++;
+            d = !o ? new flash.geom.Point(0,0) : this.hpmMove(o);
+            if(k < 3)
+            {
+               // the bars, about their own centre
+               if(k < this.hpmRows.length && k < this.hpmRowBase.length)
+               {
+                  row = DisplayObject(this.hpmRows[k]);
+                  row.scaleX = 1;
+                  row.scaleY = 1;
+                  b = row.getBounds(row);
+                  row.scaleX = sx;
+                  row.scaleY = sy;
+                  row.x = this.hpmRowBase[k][0] + d.x - (b.x + b.width / 2) * (sx - 1);
+                  row.y = this.hpmRowBase[k][1] + d.y - (b.y + b.height / 2) * (sy - 1);
+               }
+            }
+            else if(this.hpmBoxes[k])
+            {
+               // the other parts' containers, about the part's centre at rest
+               box = DisplayObject(this.hpmBoxes[k]);
+               c = this.hpmBoxC[k];
+               box.scaleX = sx;
+               box.scaleY = sy;
+               box.x = d.x + c.x * (1 - sx);
+               box.y = d.y + c.y * (1 - sy);
+            }
+            k++;
          }
-         // the badges (each part of a badge - the sign's slot, glow and text; the skull and its backing - moves alike)
-         i = 0;
-         while(i < this.hpmBadgeObjs.length)
+         this.hpmApplyVis();
+      }
+
+      // is part k set to stay shown when the game fades the widget
+      private function hpmStays(k:int) : Boolean
+      {
+         var o:Object = this.hpmParts[k];
+         return this.hpmPartsOn && (this.hpmAllAlways || o && o.always) && this.hpmAllowed(k);
+      }
+
+      // Hide and Show (in / out of combat) allow part k now
+      private function hpmAllowed(k:int) : Boolean
+      {
+         var o:Object = this.hpmPartsOn ? this.hpmParts[k] : null;
+         var combat:Boolean = false;
+         if(!o)
          {
-            e = this.hpmBadgeObjs[i];
-            obj = DisplayObject(e[0]);
-            o = this.hpmPartsOn ? this.hpmParts[e[3]] : null;
-            d = !o ? new flash.geom.Point(0,0) : this.hpmLocal(o.x,o.y);
-            obj.scaleX = e[4] * (!o ? 1 : o.s);
-            obj.scaleY = e[5] * (!o ? 1 : o.s);
-            obj.x = e[1] + d.x;
-            obj.y = e[2] + d.y;
-            if(o && o.hide)
-            {
-               obj.alpha = 0;
-            }
-            else if(obj.alpha == 0 && e[3] == 3)
-            {
-               obj.alpha = 1;
-            }
-            i++;
+            return true;
          }
+         if(o.hide)
+         {
+            return false;
+         }
+         combat = this.hpmCombatNow();
+         return o.show == 0 || o.show == 1 && combat || o.show == 2 && !combat;
+      }
+
+      // the widget is held up while any part allowed now is set to stay - never while the game has it hidden on purpose
+      // (the HUD's player widget switched off: its state "Hide", or disabled)
+      private function hpmHolding() : Boolean
+      {
+         var k:int = 0;
+         if(!isEnabled || getState() == "Hide")
+         {
+            return false;
+         }
+         while(k < HPM_PART_KEYS.length)
+         {
+            if(this.hpmStays(k))
+            {
+               return true;
+            }
+            k++;
+         }
+         return false;
+      }
+
+      private function hpmApplyVis() : void
+      {
+         var held:Boolean = this.hpmHolding() && !this.hpmWant;
+         var k:int = 0;
+         var d:DisplayObject = null;
+         while(k < HPM_PART_KEYS.length)
+         {
+            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : DisplayObject(this.hpmBoxes[k]);
+            if(d)
+            {
+               d.visible = this.hpmAllowed(k) && (!held || this.hpmStays(k)) && !(k < 3 && this.hpmIsCiri && k > 0);
+            }
+            k++;
+         }
+      }
+
+      // after a layout or combat change: hold the widget up, or hand it back to the game's own wish
+      private function hpmSyncHold() : void
+      {
+         if(this.hpmHolding())
+         {
+            if(!_shown || alpha < 0.05)
+            {
+               super.ShowElementFromState(true,false);
+            }
+         }
+         else if(!this.hpmWant && _shown)
+         {
+            super.ShowElementFromState(false,false);
+         }
+         this.hpmApplyVis();
+      }
+
+      // the game's fade in / out of the whole widget (its update timer, its display state)
+      override public function ShowElementFromState(param1:Boolean, param2:Boolean = false) : void
+      {
+         this.hpmWant = param1;
+         if(!param1 && this.hpmHolding())
+         {
+            super.ShowElementFromState(true,false);
+         }
+         else
+         {
+            super.ShowElementFromState(param1,param2);
+         }
+         this.hpmApplyVis();
+      }
+
+      // "<key>:<found>:<l>:<t>:<r>:<b>;..." for each part, in percent of the screen (the page's slider ranges)
+      public function hpmMakeReport() : void
+      {
+         var s:String = "";
+         var k:int = 0;
+         var d:DisplayObject = null;
+         var b:Rectangle = null;
+         var scr:Rectangle = this.hpmScreen();
+         while(k < HPM_PART_KEYS.length)
+         {
+            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : DisplayObject(this.hpmBoxes[k]);
+            if(d && d.stage && scr.width > 0 && scr.height > 0)
+            {
+               b = d.getBounds(stage);
+               s += HPM_PART_KEYS[k] + ":1:" + this.hpmPct(b.left - scr.left,scr.width) + ":" + this.hpmPct(b.top - scr.top,scr.height) + ":"
+                  + this.hpmPct(b.right - scr.left,scr.width) + ":" + this.hpmPct(b.bottom - scr.top,scr.height) + ";";
+            }
+            else
+            {
+               s += HPM_PART_KEYS[k] + ":0;";
+            }
+            k++;
+         }
+         this.hpmReport = s;
+      }
+
+      private function hpmPct(v:Number, whole:Number) : String
+      {
+         return String(Math.round(v / whole * 1000) / 10);
       }
 

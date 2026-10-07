@@ -163,14 +163,16 @@
       // modules is found by its moduleName in the HUD's display tree and given, on top of where the game puts it (or of
       // this mod's Place for it - the 1.0.0 spots): a move in percent of the screen, a size about its centre, hide, when
       // it shows (always / in combat / out of combat), always visible, move with another element and the Combined
-      // widgets group. The player widget's parts are moved in hud_wolfstatbars and the dialogue choices in hud_dialog;
-      // this movie reports whether the player widget is there for them.
+      // widgets group. The player widget as a whole only gets its start place here (bottom left); its parts - each an
+      // element of its own since 2026-10-07 - are moved, sized, shown and held up in hud_wolfstatbars, which reports them
+      // itself. The dialogue choices are placed in hud_dialog.
       //
       // Cheap: an element left at its defaults with no Place is never touched. Each frame only the moved elements are
       // checked for a game move (two property reads); the boxes a Place needs are measured ten times fewer.
       // =============================================================================================================
       private var hpmEls:Array = [];            // the module elements, in the page's order
       private var hpmByKey:Object = {};
+      private var hpmOff:Object = {};           // every element's own move and group membership, by key ("Move with")
       private var hpmEnabled:Boolean = true;
       private var hpmAllVisible:Boolean = false;
       private var hpmGroupX:Number = 0;
@@ -189,7 +191,8 @@
          ["LootFeed","LootFeedModule"],["Enemy","EnemyFocusModule"],["Boss","BossFocusModule"],["Companion","CompanionModule"],
          ["Breath","OxygenBarModule"],["HorseStamina","HorseStaminaBarModule"],["HorseFear","HorsePanicBarModule"],
          ["Boat","BoatHealthModule"],["Damaged","DamagedItemsModule"],["TimeLeft","TimeLeftModule"],["TimeLapse","TimeLapseModule"]];
-      private static const HPM_PARTS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Dialogue"];
+      // the dialogue choices; the player widget's parts report themselves from hud_wolfstatbars (hpmReport)
+      private static const HPM_PARTS:Array = ["Dialogue"];
 
       private function hpmTable() : void
       {
@@ -204,7 +207,7 @@
             o = {"key":HPM_MODULES[i][0],"module":HPM_MODULES[i][1],"m":null,"searched":0,
                "x":0,"y":0,"s":1,"sx":1,"sy":1,"hide":false,"show":0,"always":false,"place":false,"with":"","group":false,"zoom":100,
                "baseX":NaN,"baseY":NaN,"baseSX":NaN,"baseSY":NaN,"lastX":NaN,"lastY":NaN,"lastSX":NaN,"lastSY":NaN,
-               "hiddenByUs":false,"active":false,"dirty":true};
+               "hiddenByUs":false,"held":false,"active":false,"dirty":true};
             this.hpmEls.push(o);
             this.hpmByKey[o.key] = o;
             i++;
@@ -239,6 +242,8 @@
             {
                continue;
             }
+            // every element's move, for "Move with" (a module may follow a part of the player widget)
+            this.hpmOff[f[0]] = {"x":Number(f[1]),"y":Number(f[2]),"group":f[11] == "1"};
             o = this.hpmByKey[f[0]];
             if(!o)
             {
@@ -312,7 +317,8 @@
 
       private function hpmFades(key:String) : Boolean
       {
-         return key == "Player" || key == "QuickItems" || key == "Enemy" || key == "Boss" || key == "Companion" || key == "Breath"
+         // the player widget is not here: its parts are held up one by one in hud_wolfstatbars (2026-10-07)
+         return key == "QuickItems" || key == "Enemy" || key == "Boss" || key == "Companion" || key == "Breath"
             || key == "HorseStamina" || key == "HorseFear" || key == "Boat";
       }
 
@@ -338,6 +344,10 @@
          {
             m.visible = true;
             o.hiddenByUs = false;
+         }
+         if(o.held)
+         {
+            this.hpmLetGo(o,m);
          }
          o.baseX = NaN;
          o.baseSX = NaN;
@@ -374,15 +384,15 @@
       // percent of the screen -> stage units
       private function hpmPx(o:Object, scr:Rectangle) : Number
       {
-         var w:Object = !o["with"] ? null : this.hpmByKey[o["with"]];
-         var v:Number = o.x + (o.group ? this.hpmGroupX : 0) + (!w || w == o ? 0 : w.x + (w.group ? this.hpmGroupX : 0));
+         var w:Object = !o["with"] ? null : this.hpmOff[o["with"]];
+         var v:Number = o.x + (o.group ? this.hpmGroupX : 0) + (!w || o["with"] == o.key ? 0 : w.x + (w.group ? this.hpmGroupX : 0));
          return v / 100 * scr.width;
       }
 
       private function hpmPy(o:Object, scr:Rectangle) : Number
       {
-         var w:Object = !o["with"] ? null : this.hpmByKey[o["with"]];
-         var v:Number = o.y + (o.group ? this.hpmGroupY : 0) + (!w || w == o ? 0 : w.y + (w.group ? this.hpmGroupY : 0));
+         var w:Object = !o["with"] ? null : this.hpmOff[o["with"]];
+         var v:Number = o.y + (o.group ? this.hpmGroupY : 0) + (!w || o["with"] == o.key ? 0 : w.y + (w.group ? this.hpmGroupY : 0));
          return v / 100 * scr.height;
       }
 
@@ -516,7 +526,11 @@
             }
             if(o.always || this.hpmAllVisible && this.hpmFades(o.key))
             {
-               this.hpmHoldShown(m);
+               this.hpmHoldShown(o,m);
+            }
+            else if(o.held)
+            {
+               this.hpmLetGo(o,m);
             }
          }
          if(!gameMoved && !resized && !o.dirty && !heavy)
@@ -555,9 +569,10 @@
       // handleModuleHidden sets visible = false. Raising the alpha alone lost to the running tween and never undid the
       // visible = false. So the moment a fade-out starts (or has ended), the module's OWN fade-in is called - it removes
       // the fade-out tween (GTweener.removeTweens) and shows it - and it is kept visible and opaque.
-      private function hpmHoldShown(m:DisplayObject) : void
+      private function hpmHoldShown(o:Object, m:DisplayObject) : void
       {
          var fading:Boolean = false;
+         o.held = true;
          try
          {
             fading = Number(Object(m).desiredAlpha) < 0.99;
@@ -580,6 +595,40 @@
             }
             m.visible = true;
             m.alpha = 1;
+         }
+      }
+
+      // "Always visible" switched off (the owner, 2026-10-07: "I can't turn off the always visible global toggle after
+      // turning it on"). Holding a module up called its own fade-in, so the game counts it as shown, and with nothing new
+      // to show (full health, no fight) it never sent the fade-out again - it stayed up for good. Letting go hands it back
+      // to its own display state: a module that shows on updates gets its fade-out timer started again (it fades the
+      // usual time after its last update), one set to hide or to show on demand only fades now, one set to show always
+      // stays. Called once per let-go.
+      private function hpmLetGo(o:Object, m:DisplayObject) : void
+      {
+         var st:String = "";
+         o.held = false;
+         try
+         {
+            st = String(Object(m).getState());
+         }
+         catch(err:Error)
+         {
+            st = "";
+         }
+         try
+         {
+            if(st == "OnUpdate")
+            {
+               Object(m).SetUpdateTimer();
+            }
+            else if(st == "Hide" || st == "OnDemand")
+            {
+               Object(m).ShowElementFromState(false,false);
+            }
+         }
+         catch(err2:Error)
+         {
          }
       }
 
@@ -698,7 +747,6 @@
          var m:DisplayObject = null;
          var b:Rectangle = null;
          var scr:Rectangle = this.sqmScreen();
-         var player:Boolean = false;
          while(i < this.hpmEls.length)
          {
             o = this.hpmEls[i];
@@ -706,10 +754,6 @@
             if(m && m.stage)
             {
                b = o.key == "QuickItems" ? this.sqmItemsBox(m) : (o.key == "Minimap" ? this.hpmMinimapBox() : this.sqmShownBox(m,12,null));
-               if(o.key == "Player")
-               {
-                  player = true;
-               }
                if(b && b.width > 0)
                {
                   s += o.key + ":1:" + this.hpmPct(b.left - scr.left,scr.width) + ":" + this.hpmPct(b.top - scr.top,scr.height) + ":"
@@ -729,7 +773,7 @@
          i = 0;
          while(i < HPM_PARTS.length)
          {
-            s += HPM_PARTS[i] + ":" + (HPM_PARTS[i] == "Dialogue" || player ? "1" : "0") + ";";
+            s += HPM_PARTS[i] + ":1;";
             i++;
          }
          this.sqmReport = s;
