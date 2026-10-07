@@ -473,11 +473,28 @@
             o.baseX = m.x;
             o.baseY = m.y;
          }
+         // the game's own size: a module's desiredScale (its HUD scale, which its fade tweens animate scaleX/Y back to) -
+         // read every time, never re-based off a frame of the game's tween, so our Size does not compound during a fade
          resized = isNaN(o.lastSX) || m.scaleX != o.lastSX || m.scaleY != o.lastSY;
          if(resized)
          {
-            o.baseSX = m.scaleX;
-            o.baseSY = m.scaleY;
+            try
+            {
+               o.baseSX = Number(Object(m).desiredScale);
+            }
+            catch(errScale:Error)
+            {
+               o.baseSX = NaN;
+            }
+            if(isNaN(o.baseSX) || o.baseSX <= 0)
+            {
+               o.baseSX = m.scaleX;
+               o.baseSY = m.scaleY;
+            }
+            else
+            {
+               o.baseSY = o.baseSX;
+            }
          }
          // visibility: Hide, Show in / out of combat, Always visible
          combat = this.hpmCombatNow();
@@ -497,9 +514,9 @@
                m.visible = true;
                o.hiddenByUs = false;
             }
-            if((o.always || this.hpmAllVisible && this.hpmFades(o.key)) && m.alpha < 1)
+            if(o.always || this.hpmAllVisible && this.hpmFades(o.key))
             {
-               m.alpha = 1;   // the module's own fade-out is overruled while this is on
+               this.hpmHoldShown(m);
             }
          }
          if(!gameMoved && !resized && !o.dirty && !heavy)
@@ -531,6 +548,39 @@
          o.lastY = m.y;
          o.lastSX = m.scaleX;
          o.lastSY = m.scaleY;
+      }
+
+      // "Always visible" (the owner, 2026-10-07: the player widget was not held up). A HUD module fades out through its own
+      // state machine: ShowElementFromState(false) starts a GTween of its alpha to 0 (desiredAlpha 0) and, when that ends,
+      // handleModuleHidden sets visible = false. Raising the alpha alone lost to the running tween and never undid the
+      // visible = false. So the moment a fade-out starts (or has ended), the module's OWN fade-in is called - it removes
+      // the fade-out tween (GTweener.removeTweens) and shows it - and it is kept visible and opaque.
+      private function hpmHoldShown(m:DisplayObject) : void
+      {
+         var fading:Boolean = false;
+         try
+         {
+            fading = Number(Object(m).desiredAlpha) < 0.99;
+         }
+         catch(err:Error)
+         {
+            fading = false;
+         }
+         if(!m.visible || fading || m.alpha < 0.99)
+         {
+            if(fading || !m.visible)
+            {
+               try
+               {
+                  Object(m).ShowElementFromState(true,false);
+               }
+               catch(err2:Error)
+               {
+               }
+            }
+            m.visible = true;
+            m.alpha = 1;
+         }
       }
 
       // how far its origin moves so the box keeps its centre when the size changes (in parent units)
