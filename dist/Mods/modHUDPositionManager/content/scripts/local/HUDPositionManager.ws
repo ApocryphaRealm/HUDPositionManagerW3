@@ -10,7 +10,12 @@
 //   PlayerLeft, PlayerBottom   the player widget's distance from the left and bottom edges (8 / 8 since 2026-10-07)
 //   ItemsLeft, ItemsTop        the quick items' (potions, consumables) distance from the left and top edges
 //   DialogueRight, DialogueGap the dialogue choices moved to the right, their longest line DialogueGap from the edge
-//                              (handed to the dialogue movie, hud_dialog, whenever the game sets the choices)
+//                              (handed to the dialogue movie, hud_dialog, whenever the game sets the choices);
+//                              DialogueY moves them up (-) or down (+)
+//   <Widget>X, <Widget>Y       every other HUD widget, left (-) / right (+) and up (-) / down (+) from where the game
+//                              puts it (the buffs: from their place above the player widget) - the owner, 2026-10-07:
+//                              "make sure that each of the HUD widgets have sliders so you can change their positions"
+//   SignX, SignY, SkullX, SkullY   the player widget's sign badge and toxicity skull, apart from their bars
 // and applies Zoom (a percentage of the game's own minimap zoom). Read when the module starts and twice a second after,
 // and passed on only when one changed. Annotations only: no game script replaced. Log channel 'HUDPositionManager'.
 // =====================================================================================================================
@@ -23,6 +28,40 @@ var sqmFxPlayer : CScriptedFlashFunction;
 
 @addField(CR4HudModuleMinimap2)
 var sqmFxItems : CScriptedFlashFunction;
+
+@addField(CR4HudModuleMinimap2)
+var sqmFxOffsets : CScriptedFlashFunction;
+
+// An offset slider's value: "" and "-1" (a row never set) read as 0, the game's place.
+function SQM_Offset(cfg : CInGameConfigWrapper, id : name) : float
+{
+	return SQM_Setting(cfg, id, 0);
+}
+
+// "Name:dx:dy;..." for the minimap movie's sqmSetOffsets
+function SQM_OffsetSpec(cfg : CInGameConfigWrapper) : string
+{
+	var spec : string;
+
+	spec += "BuffsModule:" + FloatToString(SQM_Offset(cfg, 'BuffsX')) + ":" + FloatToString(SQM_Offset(cfg, 'BuffsY')) + ";";
+	spec += "ControlsFeedbackModule:" + FloatToString(SQM_Offset(cfg, 'HintsX')) + ":" + FloatToString(SQM_Offset(cfg, 'HintsY')) + ";";
+	spec += "MessageModule:" + FloatToString(SQM_Offset(cfg, 'MessagesX')) + ":" + FloatToString(SQM_Offset(cfg, 'MessagesY')) + ";";
+	spec += "SubtitlesModule:" + FloatToString(SQM_Offset(cfg, 'SubtitlesX')) + ":" + FloatToString(SQM_Offset(cfg, 'SubtitlesY')) + ";";
+	spec += "AreaInfoModule:" + FloatToString(SQM_Offset(cfg, 'AreaX')) + ":" + FloatToString(SQM_Offset(cfg, 'AreaY')) + ";";
+	spec += "JournalUpdateModule:" + FloatToString(SQM_Offset(cfg, 'JournalX')) + ":" + FloatToString(SQM_Offset(cfg, 'JournalY')) + ";";
+	spec += "LootFeedModule:" + FloatToString(SQM_Offset(cfg, 'LootFeedX')) + ":" + FloatToString(SQM_Offset(cfg, 'LootFeedY')) + ";";
+	spec += "EnemyFocusModule:" + FloatToString(SQM_Offset(cfg, 'EnemyX')) + ":" + FloatToString(SQM_Offset(cfg, 'EnemyY')) + ";";
+	spec += "BossFocusModule:" + FloatToString(SQM_Offset(cfg, 'BossX')) + ":" + FloatToString(SQM_Offset(cfg, 'BossY')) + ";";
+	spec += "CompanionModule:" + FloatToString(SQM_Offset(cfg, 'CompanionX')) + ":" + FloatToString(SQM_Offset(cfg, 'CompanionY')) + ";";
+	spec += "OxygenBarModule:" + FloatToString(SQM_Offset(cfg, 'BreathX')) + ":" + FloatToString(SQM_Offset(cfg, 'BreathY')) + ";";
+	spec += "HorseStaminaBarModule:" + FloatToString(SQM_Offset(cfg, 'HorseStaminaX')) + ":" + FloatToString(SQM_Offset(cfg, 'HorseStaminaY')) + ";";
+	spec += "HorsePanicBarModule:" + FloatToString(SQM_Offset(cfg, 'HorseFearX')) + ":" + FloatToString(SQM_Offset(cfg, 'HorseFearY')) + ";";
+	spec += "BoatHealthModule:" + FloatToString(SQM_Offset(cfg, 'BoatX')) + ":" + FloatToString(SQM_Offset(cfg, 'BoatY')) + ";";
+	spec += "DamagedItemsModule:" + FloatToString(SQM_Offset(cfg, 'DamagedX')) + ":" + FloatToString(SQM_Offset(cfg, 'DamagedY')) + ";";
+	spec += "TimeLeftModule:" + FloatToString(SQM_Offset(cfg, 'TimeLeftX')) + ":" + FloatToString(SQM_Offset(cfg, 'TimeLeftY')) + ";";
+	spec += "TimeLapseModule:" + FloatToString(SQM_Offset(cfg, 'TimeLapseX')) + ":" + FloatToString(SQM_Offset(cfg, 'TimeLapseY')) + ";";
+	return spec;
+}
 
 @addField(CR4HudModuleMinimap2)
 var sqmSettingsTimer : float;
@@ -90,13 +129,17 @@ function SQM_PushSettings(force : bool)
 {
 	var cfg : CInGameConfigWrapper;
 	var top, right, gap, zoom, pleft, pbottom, ileft, itop : float;
-	var sig : string;
+	var sx, sy, kx, ky : float;
+	var sig, spec : string;
+	var hud : CR4ScriptedHud;
+	var wolf : CR4HudModuleWolfHead;
 
 	if (!sqmFxSettings)
 	{
 		sqmFxSettings = GetModuleFlash().GetMemberFlashFunction("sqmSetSettings");
 		sqmFxPlayer = GetModuleFlash().GetMemberFlashFunction("sqmSetPlayer");
 		sqmFxItems = GetModuleFlash().GetMemberFlashFunction("sqmSetItems");
+		sqmFxOffsets = GetModuleFlash().GetMemberFlashFunction("sqmSetOffsets");
 		if (!sqmFxSettings)
 		{
 			return;
@@ -111,8 +154,14 @@ function SQM_PushSettings(force : bool)
 	pbottom = SQM_Setting(cfg, 'PlayerBottom', 8);
 	ileft = SQM_Setting(cfg, 'ItemsLeft', 8);
 	itop = SQM_Setting(cfg, 'ItemsTop', 8);
+	spec = SQM_OffsetSpec(cfg);
+	sx = SQM_Offset(cfg, 'SignX');
+	sy = SQM_Offset(cfg, 'SignY');
+	kx = SQM_Offset(cfg, 'SkullX');
+	ky = SQM_Offset(cfg, 'SkullY');
 	sig = FloatToString(top) + "/" + FloatToString(right) + "/" + FloatToString(gap) + "/" + FloatToString(zoom)
-		+ "/" + FloatToString(pleft) + "/" + FloatToString(pbottom) + "/" + FloatToString(ileft) + "/" + FloatToString(itop);
+		+ "/" + FloatToString(pleft) + "/" + FloatToString(pbottom) + "/" + FloatToString(ileft) + "/" + FloatToString(itop)
+		+ "/" + spec + "/" + FloatToString(sx) + "/" + FloatToString(sy) + "/" + FloatToString(kx) + "/" + FloatToString(ky);
 	if (!force && sig == sqmLastSettings)
 	{
 		return;
@@ -127,6 +176,19 @@ function SQM_PushSettings(force : bool)
 	{
 		sqmFxItems.InvokeSelfTwoArgs(FlashArgNumber(ileft), FlashArgNumber(itop));
 	}
+	if (sqmFxOffsets)
+	{
+		sqmFxOffsets.InvokeSelfOneArg(FlashArgString(spec));
+	}
+	hud = (CR4ScriptedHud)theGame.GetHud();
+	if (hud)
+	{
+		wolf = (CR4HudModuleWolfHead)hud.GetHudModule("WolfHeadModule");
+		if (wolf)
+		{
+			wolf.HPM_SetBadges(sx, sy, kx, ky);
+		}
+	}
 	if (sqmZoomFactor != zoom / 100)
 	{
 		sqmZoomFactor = zoom / 100;
@@ -135,7 +197,8 @@ function SQM_PushSettings(force : bool)
 	LogChannel('HUDPositionManager', "settings: minimap top " + FloatToString(top) + ", right " + FloatToString(right)
 		+ ", quest gap " + FloatToString(gap) + ", zoom " + FloatToString(zoom) + "%; player widget left "
 		+ FloatToString(pleft) + ", bottom " + FloatToString(pbottom) + "; quick items left " + FloatToString(ileft)
-		+ ", top " + FloatToString(itop));
+		+ ", top " + FloatToString(itop) + "; badges sign " + FloatToString(sx) + "/" + FloatToString(sy) + ", skull "
+		+ FloatToString(kx) + "/" + FloatToString(ky) + "; offsets " + spec);
 }
 
 @wrapMethod(CR4HudModuleMinimap2)
@@ -210,12 +273,51 @@ public function SQM_EnsureDefaults()
 	wrote = SQM_Default(cfg, 'ItemsTop', "8") || wrote;
 	wrote = SQM_Default(cfg, 'DialogueRight', "true") || wrote;
 	wrote = SQM_Default(cfg, 'DialogueGap', "40") || wrote;
+	wrote = SQM_Default(cfg, 'DialogueY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SignX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SignY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SkullX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SkullY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BuffsX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BuffsY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HintsX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HintsY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'MessagesX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'MessagesY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SubtitlesX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'SubtitlesY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'AreaX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'AreaY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'JournalX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'JournalY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'LootFeedX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'LootFeedY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'EnemyX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'EnemyY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BossX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BossY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'CompanionX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'CompanionY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BreathX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BreathY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HorseStaminaX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HorseStaminaY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HorseFearX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'HorseFearY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BoatX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'BoatY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'DamagedX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'DamagedY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'TimeLeftX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'TimeLeftY', "0") || wrote;
+	wrote = SQM_Default(cfg, 'TimeLapseX', "0") || wrote;
+	wrote = SQM_Default(cfg, 'TimeLapseY', "0") || wrote;
 	if (wrote)
 	{
 		SaveUserSettings();
 		LogChannel('HUDPositionManager', "settings: empty values got their defaults (minimap top 4, right 4, quest gap "
 			+ "8, zoom 100%; player widget left 8, bottom 8; quick items left 8, top 8; dialogue choices on the right, "
-			+ "gap 40)");
+			+ "gap 40; every widget offset and badge 0)");
 	}
 }
 
@@ -246,7 +348,7 @@ function HPM_PushDialog()
 	var cfg : CInGameConfigWrapper;
 	var v : string;
 	var on : bool;
-	var gap : float;
+	var gap, dy : float;
 
 	if (!hpmFxDialog)
 	{
@@ -264,7 +366,8 @@ function HPM_PushDialog()
 		on = !(v == "false" || v == "0");
 	}
 	gap = ClampF(SQM_Setting(cfg, 'DialogueGap', 40), 0, 600);
-	hpmFxDialog.InvokeSelfTwoArgs(FlashArgBool(on), FlashArgNumber(gap));
+	dy = SQM_Offset(cfg, 'DialogueY');
+	hpmFxDialog.InvokeSelfThreeArgs(FlashArgBool(on), FlashArgNumber(gap), FlashArgNumber(dy));
 }
 
 @wrapMethod(CR4HudModuleDialog)
@@ -282,4 +385,22 @@ function OnDialogChoicesSet(choices : array< SSceneChoice >, alternativeUI : boo
 {
 	HPM_PushDialog();
 	wrappedMethod(choices, alternativeUI);
+}
+
+// The badges, apart from their bars: the player widget's movie (hud_wolfstatbars) moves them.
+@addField(CR4HudModuleWolfHead)
+var hpmFxBadges : CScriptedFlashFunction;
+
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetBadges(sx : float, sy : float, kx : float, ky : float)
+{
+	if (!hpmFxBadges)
+	{
+		hpmFxBadges = GetModuleFlash().GetMemberFlashFunction("hpmSetBadges");
+		if (!hpmFxBadges)
+		{
+			return;
+		}
+	}
+	hpmFxBadges.InvokeSelfFourArgs(FlashArgNumber(sx), FlashArgNumber(sy), FlashArgNumber(kx), FlashArgNumber(ky));
 }

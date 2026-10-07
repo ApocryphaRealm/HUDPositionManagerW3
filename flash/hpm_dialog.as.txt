@@ -11,14 +11,17 @@
       // =============================================================================================================
       private var HPM_DIALOG_ON:Boolean = true;
       private var HPM_DIALOG_GAP:Number = 40;
+      private var HPM_DIALOG_DY:Number = 0;     // up (-) / down (+) in HUD units, on or off
+      private var hpmChoiceY0:Number = NaN;
       private var hpmChoiceX0:Number = NaN;
       private var hpmChoiceFrames:int = 0;
       private var hpmChoiceListening:Boolean = false;
 
-      public function hpmSetDialog(on:Boolean, gap:Number) : void
+      public function hpmSetDialog(on:Boolean, gap:Number, dy:Number) : void
       {
          this.HPM_DIALOG_ON = on;
          this.HPM_DIALOG_GAP = Math.max(0,gap);
+         this.HPM_DIALOG_DY = isNaN(dy) ? 0 : dy;
          this.hpmPlaceChoices();
       }
 
@@ -40,7 +43,9 @@
          if(isNaN(this.hpmChoiceX0))
          {
             this.hpmChoiceX0 = c.x;
+            this.hpmChoiceY0 = c.y;
          }
+         c.y = this.hpmChoiceY0 + this.HPM_DIALOG_DY / Math.max(0.01,c.parent.scaleY);
          if(!this.hpmChoiceListening)
          {
             this.hpmChoiceListening = true;

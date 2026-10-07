@@ -6,7 +6,9 @@
        Top 4, Right 4 (the square moves further in when the quest text centred under it needs the room), QuestGap 8,
        Zoom 100, PlayerLeft 8, PlayerBottom 8 (the player widget in the bottom left - the owner, 2026-10-07),
        ItemsLeft 8, ItemsTop 8 (the quick items in the top left), DialogueRight on, DialogueGap 40 (the dialogue choices
-       on the right, their longest line 40 units from the edge).
+       on the right, their longest line 40 units from the edge), DialogueY 0; every <Widget>X / <Widget>Y 0 - an offset
+       from where the game puts that widget, left (-) / right (+), up (-) / down (+); SignX/Y and SkullX/Y move the
+       player widget's two badges apart from their bars (the owner, 2026-10-07).
      Sliders move one unit per nudge (rule: steps = max - min). -->
 <UserConfig>
 	<Group id="HUDPositionManager" displayName="Mods.sqm_menu">
@@ -21,6 +23,45 @@
 			<Var id="ItemsTop" displayName="sqm_items_top" displayType="SLIDER;0;1000;1000"/>
 			<Var id="DialogueRight" displayName="sqm_dialogue_right" displayType="TOGGLE"/>
 			<Var id="DialogueGap" displayName="sqm_dialogue_gap" displayType="SLIDER;0;600;600"/>
+			<Var id="DialogueY" displayName="sqm_dialogue_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="SignX" displayName="sqm_sign_x" displayType="SLIDER;-300;300;600"/>
+			<Var id="SignY" displayName="sqm_sign_y" displayType="SLIDER;-300;300;600"/>
+			<Var id="SkullX" displayName="sqm_skull_x" displayType="SLIDER;-300;300;600"/>
+			<Var id="SkullY" displayName="sqm_skull_y" displayType="SLIDER;-300;300;600"/>
+			<Var id="BuffsX" displayName="sqm_buffs_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="BuffsY" displayName="sqm_buffs_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="HintsX" displayName="sqm_hints_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="HintsY" displayName="sqm_hints_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="MessagesX" displayName="sqm_messages_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="MessagesY" displayName="sqm_messages_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="SubtitlesX" displayName="sqm_subtitles_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="SubtitlesY" displayName="sqm_subtitles_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="AreaX" displayName="sqm_area_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="AreaY" displayName="sqm_area_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="JournalX" displayName="sqm_journal_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="JournalY" displayName="sqm_journal_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="LootFeedX" displayName="sqm_lootfeed_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="LootFeedY" displayName="sqm_lootfeed_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="EnemyX" displayName="sqm_enemy_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="EnemyY" displayName="sqm_enemy_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="BossX" displayName="sqm_boss_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="BossY" displayName="sqm_boss_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="CompanionX" displayName="sqm_companion_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="CompanionY" displayName="sqm_companion_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="BreathX" displayName="sqm_breath_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="BreathY" displayName="sqm_breath_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="HorseStaminaX" displayName="sqm_horsestamina_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="HorseStaminaY" displayName="sqm_horsestamina_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="HorseFearX" displayName="sqm_horsefear_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="HorseFearY" displayName="sqm_horsefear_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="BoatX" displayName="sqm_boat_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="BoatY" displayName="sqm_boat_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="DamagedX" displayName="sqm_damaged_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="DamagedY" displayName="sqm_damaged_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="TimeLeftX" displayName="sqm_timeleft_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="TimeLeftY" displayName="sqm_timeleft_y" displayType="SLIDER;-1080;1080;2160"/>
+			<Var id="TimeLapseX" displayName="sqm_timelapse_x" displayType="SLIDER;-1920;1920;3840"/>
+			<Var id="TimeLapseY" displayName="sqm_timelapse_y" displayType="SLIDER;-1080;1080;2160"/>
 		</VisibleVars>
 	</Group>
 </UserConfig>

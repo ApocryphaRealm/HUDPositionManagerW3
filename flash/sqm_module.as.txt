@@ -172,6 +172,10 @@
          {
             this.sqmPlaceNorth();
          }
+         if(this.sqmOffsetCount > 0)
+         {
+            this.sqmApplyOffsets();
+         }
          // the quest list: a few times a second (its content changes, the game's anchors can move it)
          this.sqmFrameCount++;
          if(this.sqmFrameCount >= 10)
@@ -539,7 +543,7 @@
             buffsBox = this.sqmShownBox(this.sqmBuffs,12,null);
             if(buffsBox)
             {
-               this.sqmMoveBox(this.sqmBuffs,buffsBox,wolfBox.left,wolfBox.top - 6);
+               this.sqmMoveBox(this.sqmBuffs,buffsBox,wolfBox.left + this.BUFFS_DX,wolfBox.top - 6 + this.BUFFS_DY);
             }
          }
       }
@@ -637,6 +641,156 @@
          q = this.sqmItems.parent.globalToLocal(new flash.geom.Point(scr.left + ITEMS_LEFT,scr.top + ITEMS_TOP));
          this.sqmItems.x += q.x - p.x;
          this.sqmItems.y += q.y - p.y;
+      }
+
+      // =============================================================================================================
+      // Every other HUD widget, moved by the player (the owner, 2026-10-07: "make sure that each of the HUD widgets have
+      // sliders so you can change their positions, including the widget that pops up whenever you eat food ... I can
+      // just position everything where I want it myself"). Each widget has a left/right and an up/down offset in HUD
+      // units from where the game puts it (0, 0 = the game's place). The game re-anchors its modules (resolution, HUD
+      // scale, some modules on show), so the game's own position is re-read whenever the module stands somewhere other
+      // than where the offset last put it, and the offset is added to that. Only widgets with an offset are looked at,
+      // once a frame (a few property reads each); one set back to 0, 0 is returned to the game's place and dropped.
+      // The buffs (BuffsModule: food, potions, oils...) keep their place above the player widget plus BUFFS_DX / _DY.
+      // HUDPositionManager.ws hands everything in through sqmSetOffsets as "Name:dx:dy;Name:dx:dy;...".
+      // =============================================================================================================
+      private var BUFFS_DX:Number = 0;
+      private var BUFFS_DY:Number = 0;
+      private var sqmOffsets:Object = {};
+      private var sqmOffsetCount:int = 0;
+
+      public function sqmSetOffsets(spec:String) : void
+      {
+         var parts:Array = !spec ? [] : spec.split(";");
+         var seen:Object = {};
+         var i:int = 0;
+         var f:Array = null;
+         var name:String = null;
+         var dx:Number = NaN;
+         var dy:Number = NaN;
+         var o:Object = null;
+         var k:String = null;
+         while(i < parts.length)
+         {
+            f = String(parts[i]).split(":");
+            i++;
+            if(f.length != 3)
+            {
+               continue;
+            }
+            name = f[0];
+            dx = Number(f[1]);
+            dy = Number(f[2]);
+            if(isNaN(dx) || isNaN(dy))
+            {
+               continue;
+            }
+            if(name == "BuffsModule")
+            {
+               this.BUFFS_DX = dx;
+               this.BUFFS_DY = dy;
+               continue;
+            }
+            seen[name] = true;
+            o = this.sqmOffsets[name];
+            if(dx == 0 && dy == 0)
+            {
+               if(o)
+               {
+                  this.sqmOffsetReset(o);
+                  delete this.sqmOffsets[name];
+               }
+               continue;
+            }
+            if(!o)
+            {
+               o = {"name":name,"m":null,"searched":0,"lastX":NaN,"lastY":NaN,"baseX":NaN,"baseY":NaN};
+               this.sqmOffsets[name] = o;
+            }
+            o.dx = dx;
+            o.dy = dy;
+            o.lastX = NaN;   // applies the new offset on the next frame
+         }
+         for(k in this.sqmOffsets)
+         {
+            if(!seen[k])
+            {
+               this.sqmOffsetReset(this.sqmOffsets[k]);
+               delete this.sqmOffsets[k];
+            }
+         }
+         this.sqmOffsetCount = 0;
+         for(k in this.sqmOffsets)
+         {
+            this.sqmOffsetCount++;
+         }
+         if(this.sqmReady && stage)
+         {
+            this.sqmPlacePlayer();
+         }
+      }
+
+      private function sqmOffsetReset(o:Object) : void
+      {
+         var m:DisplayObject = o.m as DisplayObject;
+         if(m && m.stage && !isNaN(o.baseX) && m.x == o.lastX && m.y == o.lastY)
+         {
+            m.x = o.baseX;
+            m.y = o.baseY;
+         }
+      }
+
+      private function sqmApplyOffsets() : void
+      {
+         var o:Object = null;
+         var m:DisplayObject = null;
+         var a:* = undefined;
+         var b:* = undefined;
+         for each(o in this.sqmOffsets)
+         {
+            m = o.m as DisplayObject;
+            if(!m || !m.stage)
+            {
+               o.m = null;
+               if(o.searched > 40)
+               {
+                  continue;
+               }
+               o.searched++;
+               m = this.sqmFindModule(stage,o.name,6);
+               if(!m)
+               {
+                  continue;
+               }
+               o.m = m;
+               o.lastX = NaN;
+            }
+            if(m.x == o.lastX && m.y == o.lastY)
+            {
+               continue;
+            }
+            if(!m.parent)
+            {
+               continue;
+            }
+            if(isNaN(o.lastX) && !isNaN(o.baseX) && m.x == o.baseX + o.appliedX && m.y == o.baseY + o.appliedY)
+            {
+               // a new offset for a module we already moved: start from the game's place, not from our last one
+               m.x = o.baseX;
+               m.y = o.baseY;
+            }
+            o.baseX = m.x;
+            o.baseY = m.y;
+            // HUD units -> the module's parent units (the HUD scale can scale the parent)
+            a = m.parent.globalToLocal(new flash.geom.Point(0,0));
+            b = m.parent.globalToLocal(new flash.geom.Point(o.dx,o.dy));
+            o.appliedX = b.x - a.x;
+            o.appliedY = b.y - a.y;
+            m.x = o.baseX + o.appliedX;
+            m.y = o.baseY + o.appliedY;
+            o.lastX = m.x;
+            o.lastY = m.y;
+         }
       }
 
       // the north mark turns round the map's centre at the circle's radius; on a square its distance from the centre is

@@ -37,6 +37,21 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
     placed 8 / 8 from the screen's left and top edges by the box of all its slots and hints, shown or not, so the slots
     do not jump when a hint appears and the hints keep their room under the top edge. Distances on the settings page.
   - Settings rows that were never set ("-1") count as empty, so they take their defaults.
+- Then every widget on sliders (the owner, 2026-10-07: "make sure that each of the HUD widgets have sliders so you can
+  change their positions, including the widget that pops up whenever you eat food. And move the badges independently
+  of their bars. And I can just position everything where I want it myself"), built, not yet seen in game:
+  - 17 more widgets, each with a left / right and an up / down slider in HUD units from where the game puts it (0 = the
+    game's place; left and up are minus): effects (food, potions - BuffsModule, from its place above the player widget),
+    button hints, messages, subtitles, area name, quest and journal updates, items received, enemy and boss health bars,
+    companion health bar, breath bar, horse stamina and fear bars, boat health bar, damaged gear icons, time limit bar,
+    passing time text. Moved by the minimap movie, which re-reads the game's own position whenever the game re-anchors
+    a widget; only widgets with an offset are looked at (once a frame), so the defaults cost nothing.
+  - The sign badge and the toxicity skull each on their own left / right and up / down sliders (-300 to 300), apart from
+    their bars - the toxicity bar keeps its start.
+  - The dialogue choices also move up / down.
+  - Not given sliders: the quick wheel, the crosshair, the interaction prompts and the floating one-liners (they follow
+    the screen's centre or things in the world), the debug console.
+  - A slider set to exactly -1 reads as 0 (the game reports a row never set as "-1").
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 
