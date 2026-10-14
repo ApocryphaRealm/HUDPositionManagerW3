@@ -121,6 +121,9 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
     further right than the Health bar's (a leftover of the 2026-10-07 test, when moving that part also moved the whole
     widget), and the anchor conversion kept that difference.
 
+### Changed
+- Vanilla values are the defaults (the owner, 2026-10-14: 'I want the vanilla values set as the default'): a fresh install moves nothing - every element starts where the game puts it, at its own size, and Reset this element / Reset every element land there. The one-time take-over of the unreleased 1.0.0 Options > Mods values (minimap 4 / 4 from the corner, dialogue on the right, ...) is gone, with its hidden settings; and the page now sends its layout once at every start, so with no settings file the defaults replace a layout an earlier session left in the game's own settings. README rewritten for the mod as it is.
+
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 
 First version of Square Minimap, for The Witcher 3: Wild Hunt - Remastered 5.0 (plan: 4. plans\square-minimap-witcher3).

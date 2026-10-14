@@ -99,38 +99,6 @@ namespace bridge
 			ConvertAnchors(anchors);
 		}
 
-		// 1.0.0 kept its values on Options > Mods (HUD units of a 1920 x 1080 screen); taken over once into the INI
-		bool Import()
-		{
-			const char* vars[] = { "Top", "Right", "QuestGap", "Zoom", "PlayerLeft", "PlayerBottom", "ItemsLeft", "ItemsTop", "DialogueRight",
-				"DialogueGap", "DialogueY" };
-			std::unordered_map<std::string, std::string> old;
-			for (const char* v : vars) {
-				const auto s = Read(v);
-				if (!s.empty() && s != "-1") old[v] = s;
-			}
-			if (old.empty()) return false;   // nothing read yet (the framework reads a watched value from the next frame on)
-			const auto num = [&](const char* a_k, float a_def) { const auto it = old.find(a_k); return it == old.end() ? a_def : static_cast<float>(std::atof(it->second.c_str())); };
-			const auto px = [](float u) { return std::round(u / 1920.0f * 10000.0f) / 100.0f; };
-			const auto py = [](float u) { return std::round(u / 1080.0f * 10000.0f) / 100.0f; };
-			settings::Update([&](settings::Values& v) {
-				auto set = [&](const char* a_key, auto&& a_fn) { if (const int i = elements::IndexOf(a_key); i >= 0) a_fn(v.elements[static_cast<std::size_t>(i)]); };
-				set("Minimap", [&](settings::Element& e) { e.x = -px(num("Right", 4)); e.y = py(num("Top", 4)); e.zoom = num("Zoom", 100); });
-				set("Quests", [&](settings::Element& e) { e.y = py(num("QuestGap", 8)); });
-				set("Player", [&](settings::Element& e) { e.x = px(num("PlayerLeft", 8)); e.y = -py(num("PlayerBottom", 8)); });
-				set("QuickItems", [&](settings::Element& e) { e.x = px(num("ItemsLeft", 8)); e.y = py(num("ItemsTop", 8)); });
-				set("Dialogue", [&](settings::Element& e) {
-					const auto r = old.find("DialogueRight");
-					e.place = r == old.end() || (r->second != "false" && r->second != "0");
-					e.x = -px(num("DialogueGap", 40));
-					e.y = py(num("DialogueY", 0));
-				});
-				v.imported = true;
-			});
-			logger::info("bridge: the 1.0.0 settings (Options > Mods) taken over - {} value(s)", old.size());
-			return true;
-		}
-
 		void Loop()
 		{
 			for (int tries = 0; !AMF::HasGameVars() && tries < 600; ++tries) std::this_thread::sleep_for(500ms);
@@ -139,22 +107,10 @@ namespace bridge
 				return;
 			}
 			AMF::WatchGameVar(kGroup, "Report");
-			const bool needImport = !settings::Snapshot().imported;
-			if (needImport) {
-				for (const char* v : { "Top", "Right", "QuestGap", "Zoom", "PlayerLeft", "PlayerBottom", "ItemsLeft", "ItemsTop", "DialogueRight", "DialogueGap", "DialogueY" }) {
-					AMF::WatchGameVar(kGroup, v);
-				}
-			}
-			std::uint64_t sentGen = 0;
-			int           importTries = 0;
+			// sent once at the start whatever the generation: with no settings file the defaults (every element where the game
+			// puts it) must still replace a layout an earlier session left in the game's own settings
+			std::uint64_t sentGen = ~std::uint64_t{ 0 };
 			for (;;) {
-				if (!settings::Snapshot().imported && importTries < 240) {   // up to two minutes for the game's settings to be read
-					++importTries;
-					if (!Import() && importTries == 240) {
-						logger::info("bridge: no 1.0.0 settings found - the defaults stand");
-						settings::Update([](settings::Values& v) { v.imported = true; });
-					}
-				}
 				const auto gen = settings::Generation();
 				if (gen != sentGen) {
 					const auto s = settings::LayoutString(settings::Snapshot());

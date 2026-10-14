@@ -2,24 +2,12 @@
 <!-- HUD Position Manager. Not shown in any menu (visibilityCondition="hideAlways"): since 2026-10-07 the settings page is on
      the Apocrypha Menu Framework (bin\x64_dx12\HUDPositionManager.asi), organised as the Skyrim and Oblivion versions are.
      Layout - the whole layout as one string, written by the page; HUDPositionManager.ws hands it to the HUD movies.
-     Report - which HUD elements exist and their boxes, written by the script for the page.
-     The rest are the 1.0.0 Options > Mods values, still declared so the page can take them over once. -->
+     Report - which HUD elements exist and their boxes, written by the script for the page. -->
 <UserConfig>
 	<Group id="HUDPositionManager" displayName="hidden" visibilityCondition="hideAlways">
 		<VisibleVars>
 			<Var id="Layout" displayName="HPMLayout" displayType="TOGGLE"/>
 			<Var id="Report" displayName="HPMReport" displayType="TOGGLE"/>
-			<Var id="Zoom" displayName="sqm_zoom" displayType="SLIDER;50;300;250"/>
-			<Var id="Top" displayName="sqm_top" displayType="SLIDER;0;1000;1000"/>
-			<Var id="Right" displayName="sqm_right" displayType="SLIDER;0;1800;1800"/>
-			<Var id="QuestGap" displayName="sqm_quest_gap" displayType="SLIDER;0;100;100"/>
-			<Var id="PlayerLeft" displayName="sqm_player_left" displayType="SLIDER;0;1800;1800"/>
-			<Var id="PlayerBottom" displayName="sqm_player_bottom" displayType="SLIDER;0;1000;1000"/>
-			<Var id="ItemsLeft" displayName="sqm_items_left" displayType="SLIDER;0;1800;1800"/>
-			<Var id="ItemsTop" displayName="sqm_items_top" displayType="SLIDER;0;1000;1000"/>
-			<Var id="DialogueRight" displayName="sqm_dialogue_right" displayType="TOGGLE"/>
-			<Var id="DialogueGap" displayName="sqm_dialogue_gap" displayType="SLIDER;0;600;600"/>
-			<Var id="DialogueY" displayName="sqm_dialogue_y" displayType="SLIDER;-1080;1080;2160"/>
 		</VisibleVars>
 	</Group>
 </UserConfig>

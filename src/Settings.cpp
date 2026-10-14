@@ -37,7 +37,6 @@ namespace settings
 				{ "General.bAlwaysVisible", a_v.alwaysVisible ? "1" : "0" },
 				{ "General.bPreview", a_v.preview ? "1" : "0" },
 				{ "General.bUnlocked", a_v.unlocked ? "1" : "0" },
-				{ "General.bImported", a_v.imported ? "1" : "0" },
 			};
 			const auto& all = elements::All();
 			for (std::size_t i = 0; i < all.size() && i < a_v.elements.size(); ++i) {
@@ -73,7 +72,7 @@ namespace settings
 		// The player widget was one element until 2026-10-07 (the owner: "broken up into its individual parts, not as a
 		// single widget that can be added to the combined widget"). A settings file or preset that moved, sized or hid it as
 		// a whole gives that to every part instead, and the whole goes back to its defaults (only its Place stays, the parts'
-		// shared start). Runs inside Clamp, so the INI, presets and the 1.0.0 import all pass through it; once done it finds
+		// shared start). Runs inside Clamp, so the INI and presets both pass through it; once done it finds
 		// the whole at its defaults and does nothing.
 		void MigratePlayer(Values& a_v)
 		{
@@ -312,14 +311,13 @@ namespace settings
 	{
 		Entries entries;
 		if (!ReadIni(IniPath(), entries)) {
-			logger::info("settings: {} not found - the defaults are in effect (the 1.0.0 layout)", IniPath().string());
+			logger::info("settings: {} not found - the defaults are in effect (every element where the game puts it)", IniPath().string());
 			return;
 		}
 		std::scoped_lock l(g_valuesLock);
 		auto& v = g_values;
 		if (const auto* s = Get(entries, "General.bEnabled")) v.enabled = Flag(*s);
 		if (const auto* s = Get(entries, "General.bUnlocked")) v.unlocked = Flag(*s);
-		if (const auto* s = Get(entries, "General.bImported")) v.imported = Flag(*s);
 		const int changed = ReadLayout(entries, v);
 		if (const auto* s = Get(entries, "Log.uLogLevel")) v.logLevel = std::atoi(s->c_str());
 		Clamp(v);

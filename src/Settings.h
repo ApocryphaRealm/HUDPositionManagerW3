@@ -50,7 +50,6 @@ namespace settings
 		std::vector<Element> elements = Defaults();
 		Group                group;
 		int                  logLevel = 2;          // [Log] uLogLevel (rule 14: shipped at info)
-		bool                 imported = false;      // [General] bImported - the 1.0.0 Options > Mods values taken over once
 
 		static std::vector<Element> Defaults();
 	};
