@@ -37,6 +37,7 @@ if (Test-Path -LiteralPath $pkg) { throw "$pkg already exists - a version is pac
 New-Item -ItemType Directory -Force -Path $pkg | Out-Null
 Copy-Item -Path (Join-Path $repo 'dist\*') -Destination $pkg -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination $pkg
+Copy-Item -LiteralPath (Join-Path $repo 'NOTICE.md') -Destination $pkg   # the GPL notice travels with every download
 
 $readme = Join-Path $pkg 'README.txt'
 $text = [System.IO.File]::ReadAllText($readme)

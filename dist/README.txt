@@ -51,5 +51,5 @@ Apocrypha Menu Framework for The Witcher 3, 1.0.2 or later.
 
 
 LICENCE
-GPL-3.0-or-later (LICENSE). The HUD movies are CD PROJEKT RED's, changed by this mod and rebuilt with the Witcher III
-Modding Tool (REDkit).
+GPL-3.0-or-later (LICENSE, NOTICE.md; the linked libraries in THIRD_PARTY_NOTICES.md). The HUD movies are
+CD PROJEKT RED's, changed by this mod and rebuilt with the Witcher III Modding Tool (REDkit).
