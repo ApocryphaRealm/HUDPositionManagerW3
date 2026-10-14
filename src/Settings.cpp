@@ -248,13 +248,58 @@ namespace settings
 		}
 	}
 
-	// Every element's default is where the game puts it, at its own size (no anchors since 2026-10-07 - Elements.h placeKey).
+	// The default layout is the owner's own (2026-10-14: "I just saved my current values as a preset. So just make my
+	// preset the default."), his "ApocryphaRealm Preset" - shipped too, as presets\Default layout.ini. A fresh install
+	// with no settings file shows it, and Reset this element / Reset every element / Reset the shared position go back
+	// to it. Every element not listed is where the game puts it, at its own size. Percent of the screen, as fX / fY.
+	namespace
+	{
+		struct DefaultPlace
+		{
+			const char* key;
+			float       x, y;
+			bool        alwaysVisible;
+		};
+		constexpr DefaultPlace kDefaultLayout[]{
+			{ "Minimap", 0.24f, -3.76f, false },
+			{ "Quests", 1.13f, -7.22f, false },
+			{ "Medallion", 2.18f, 84.82f, true },
+			{ "Health", 2.18f, 84.82f, true },
+			{ "Experience", 2.18f, 84.82f, true },
+			{ "Stamina", 1.78f, 84.32f, true },
+			{ "Adrenaline", 0.00f, 83.82f, true },
+			{ "Toxicity", -0.62f, 83.32f, true },
+			{ "Sign", 1.28f, 83.82f, true },
+			{ "Skull", 0.70f, 83.42f, true },
+			{ "Buffs", -17.50f, -14.30f, false },
+			{ "QuickItems", -5.00f, -73.00f, false },
+			{ "Dialogue", -2.08f, 0.00f, false },   // with its anchor on (Elements.h placeDefault): at the right edge
+			{ "Hints", 6.90f, 0.00f, false },
+		};
+	}
+
+	Group DefaultGroup()
+	{
+		Group g;
+		g.members = { "Medallion", "Health", "Experience", "Stamina", "Adrenaline", "Toxicity", "Sign", "Skull" };
+		g.x = -5.20f;
+		g.y = 1.50f;
+		return g;
+	}
+
 	Element DefaultElement(std::size_t a_index)
 	{
 		Element e;
 		if (a_index >= elements::Count()) return e;
 		const auto& el = elements::All()[a_index];
 		e.place = el.placeKey && el.placeDefault;
+		for (const auto& d : kDefaultLayout) {
+			if (std::string_view(d.key) == el.key) {
+				e.x = d.x;
+				e.y = d.y;
+				e.alwaysVisible = d.alwaysVisible && el.fades;
+			}
+		}
 		return e;
 	}
 
@@ -299,6 +344,7 @@ namespace settings
 		{
 			std::scoped_lock l(g_valuesLock);
 			g_values.elements = Values::Defaults();
+			g_values.group = DefaultGroup();
 		}
 		++g_generation;
 		Save();
@@ -311,7 +357,7 @@ namespace settings
 	{
 		Entries entries;
 		if (!ReadIni(IniPath(), entries)) {
-			logger::info("settings: {} not found - the defaults are in effect (every element where the game puts it)", IniPath().string());
+			logger::info("settings: {} not found - the defaults are in effect (the default layout)", IniPath().string());
 			return;
 		}
 		std::scoped_lock l(g_valuesLock);
@@ -450,7 +496,7 @@ namespace settings
 		{
 			std::scoped_lock l(g_valuesLock);
 			g_values.elements = Values::Defaults();   // a preset is the whole layout: what it leaves out is the default
-			g_values.group = Group{};
+			g_values.group = DefaultGroup();
 			changed = ReadLayout(e, g_values);
 			Clamp(g_values);
 		}

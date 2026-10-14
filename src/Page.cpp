@@ -326,8 +326,8 @@ namespace page
 				changed |= PercentSlider((std::string(TR("HPM_MoveY", "Move up / down")) + "##groupy").c_str(), &group.y, minY, maxY);
 				held.y = ImGui::IsItemActive();
 				if (ImGui::Button((std::string(TR("HPM_GroupReset", "Reset the shared position")) + "##groupreset").c_str())) {
-					group.x = 0.0f;
-					group.y = 0.0f;
+					group.x = settings::DefaultGroup().x;   // the default layout's shared position
+					group.y = settings::DefaultGroup().y;
 					changed = true;
 				}
 			}

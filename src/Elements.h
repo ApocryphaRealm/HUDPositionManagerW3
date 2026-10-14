@@ -31,7 +31,7 @@ namespace elements
 		// adds that to the element's sliders and switches the anchor off (Bridge.cpp ConvertAnchors), so nothing jumps.
 		const char* placeKey = nullptr;
 		const char* placeEnglish = nullptr;
-		bool        placeDefault = false;   // no anchor is on by default any more
+		bool        placeDefault = false;   // on by default: only the dialogue choices, as in the default layout (Settings.cpp)
 		// not on the page: the player widget as a whole, which only carries its parts' shared start place (the owner,
 		// 2026-10-07: the player widget is broken up into its parts, not one widget that joins the Combined widgets)
 		bool        internal = false;
@@ -63,7 +63,7 @@ namespace elements
 			{ .key = "Buffs", .english = "Effects (food, potions)", .module = "BuffsModule", .fades = true, .placeKey = "HPM_PlaceAbovePlayer", .placeEnglish = "Above the player widget" },
 			{ .key = "QuickItems", .english = "Quick items", .module = "ItemInfoModule", .fades = true, .placeKey = "HPM_PlaceTopLeft", .placeEnglish = "Top left corner" },
 			// the dialogue choice list, in hud_dialog: its longest line ends a small gap from the right edge by default
-			{ .key = "Dialogue", .english = "Dialogue choices", .module = nullptr, .movie = Movie::kDialog, .placeKey = "HPM_PlaceRightEdge", .placeEnglish = "At the right edge" },
+			{ .key = "Dialogue", .english = "Dialogue choices", .module = nullptr, .movie = Movie::kDialog, .placeKey = "HPM_PlaceRightEdge", .placeEnglish = "At the right edge", .placeDefault = true },
 			{ .key = "Subtitles", .english = "Subtitles", .module = "SubtitlesModule", .fades = true },
 			{ .key = "Messages", .english = "Messages", .module = "MessageModule", .fades = true },
 			{ .key = "Hints", .english = "Button hints", .module = "ControlsFeedbackModule", .fades = true },

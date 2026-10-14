@@ -41,6 +41,9 @@ namespace settings
 		}
 	};
 
+	// The default layout's Combined widgets: the player widget's eight parts moving as one (the owner's preset, 2026-10-14)
+	Group DefaultGroup();
+
 	struct Values
 	{
 		bool                 enabled = true;        // [General] bEnabled - "Apply my layout"
@@ -48,7 +51,7 @@ namespace settings
 		bool                 preview = false;       // [General] bPreview - "Show every element" (phase 3)
 		bool                 unlocked = false;      // [General] bUnlocked - "Free placement": past the screen's edges
 		std::vector<Element> elements = Defaults();
-		Group                group;
+		Group                group = DefaultGroup();
 		int                  logLevel = 2;          // [Log] uLogLevel (rule 14: shipped at info)
 
 		static std::vector<Element> Defaults();
@@ -62,7 +65,7 @@ namespace settings
 	Values  Snapshot();
 	void    Update(const std::function<void(Values&)>& a_change);   // clamps, then saves
 	void    ResetElement(std::size_t a_index);
-	void    ResetAll();                                              // every element's defaults (the switches stay)
+	void    ResetAll();                                              // every element's and the Combined widgets' defaults (the switches stay)
 	std::uint64_t Generation();                                      // bumps on every change, for the bridge
 
 	void Load();
