@@ -104,6 +104,22 @@ HUDPositionManager - settings start from their defaults), log channel HUDPositio
   conversation shows), the bridge writes it into the sliders and switches the anchor off - nothing jumps. The player
   widget's move passes to its parts, and an effects anchor still on takes the same move.
   - Eleven languages: 92 keys.
+- The experience (level) bar lined up with the health bar (the owner, 2026-10-13: "The level experience bar above the
+  health bar is out of position. And the last time I tested HUD Position Manager for Witcher 3, it couldn't fix it"),
+  built, not yet seen in game:
+  - By default the experience line now runs from the health bar's shown left edge (just right of the medallion) to the
+    health bar's right end, as far above the health bar as the stamina bar is below it; the game's own thickness is
+    kept. Before, it kept the game's place: it started under the medallion, stopped short of the health bar's end and
+    sat on the health bar's top edge.
+  - The level-up mark (the diamond at the line's right end) is now part of the Experience bar, not of the Medallion, so
+    it stays at the line's end when the bar is moved.
+  - The Experience part is measured by its line. The bar shows its value by moving a mask that, at a low value, reaches
+    far past the line's left end and off the screen; the part's box, its centre (Size and Length scale about it) and the
+    page's slider range were taken from that mask, so they depended on how much experience the player had, and with
+    Free placement off the left / right slider could not go left at all.
+  - The cause of the misplaced bar in the owner's game was the Experience slider itself: it was 3.42 % of the screen
+    further right than the Health bar's (a leftover of the 2026-10-07 test, when moving that part also moved the whole
+    widget), and the anchor conversion kept that difference.
 
 ## 1.0.0 - 2026-10-06 - working (finalized, private - not posted)
 

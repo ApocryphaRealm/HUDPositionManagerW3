@@ -108,6 +108,8 @@
          var tox:Rectangle = null;
          var y:Number = NaN;
          var maxLen:Number = NaN;
+         var xpAt:int = -1;
+         var xpLine:Rectangle = null;
          if(!this.mcHealthBar || this.hpmRows.length > 0)
          {
             return;
@@ -134,6 +136,9 @@
             i++;
          }
          y = fill.bottom + gap * 1.6;
+         // the experience (level) line above the health bar, lined up with it as the bars below are: from the same left
+         // edge to the health bar's right end, as far above it as the stamina bar is below it (hpmPlaceXp)
+         this.hpmPlaceXp(left,fill.right,fill.top - gap * 1.6);
          // the badges (the owner, 2026-10-07): the sign badge to the LEFT of the adrenaline bar, where the game has it;
          // the skull badge at the toxicity bar's left end, and that bar starts just right of it - its right end stays
          // where its length puts it, so it is still a little shorter than the bar above. The two badges sit on
@@ -171,9 +176,21 @@
          // the game's own pieces of each other part, each in a container of its own (moved, sized and shown as one)
          this.hpmWrap(3,[this.mcSignSlot,this.mSignReady,this.mcSignText]);
          this.hpmWrap(4,[this.mcSkullBck,this.mcSkull]);
-         this.hpmWrap(5,[this.mcBckCircle,this.mcWolfsHead,this.mcNewLevelIndcator,this.mcMutationFeedback]);
+         this.hpmWrap(5,[this.mcBckCircle,this.mcWolfsHead,this.mcMutationFeedback]);
          this.hpmWrap(6,[this.mcHealthBar]);
-         this.hpmWrap(7,[this.mcExperienceBar]);
+         // the experience bar with its level-up mark (the diamond at the line's right end); the container takes the line's
+         // own depth, under the medallion, and is measured by the line, not by the bar's value mask (hpmLineBox)
+         xpAt = !this.mcExperienceBar || this.mcExperienceBar.parent != this ? -1 : getChildIndex(this.mcExperienceBar);
+         this.hpmWrap(7,[this.mcExperienceBar,this.mcNewLevelIndcator]);
+         if(this.hpmBoxes[7] && xpAt >= 0)
+         {
+            setChildIndex(DisplayObject(this.hpmBoxes[7]),Math.min(xpAt,numChildren - 1));
+            xpLine = this.hpmLineBox(this.mcExperienceBar,this);
+            if(xpLine)
+            {
+               this.hpmBoxC[7] = new flash.geom.Point(xpLine.x + xpLine.width / 2,xpLine.y + xpLine.height / 2);
+            }
+         }
          // the widget's box with every part at rest: the corner the minimap movie places the widget by
          this.hpmRest = null;
          i = 0;
@@ -203,6 +220,106 @@
             fill = null;
          }
          return (!fill ? bar : fill).getBounds(this);
+      }
+
+      // The experience bar's LINE in space's units. The bar (a CLIK StatusIndicator) shows its value by moving a mask
+      // across its 101 frames: at a low value the mask reaches about 250 units left of the line, under the medallion
+      // and past the screen's edge. The bar's own bounds follow that mask, so a box, a centre or a slider range taken
+      // from them moved with the experience the player had. The line is the bar's flat pieces: of its children as wide
+      // as half the widest, the thinnest and those up to twice as thick (the masks are several times thicker).
+      private function hpmLineBox(bar:DisplayObject, space:DisplayObject) : Rectangle
+      {
+         var c:DisplayObjectContainer = bar as DisplayObjectContainer;
+         var all:Array = [];
+         var b:Rectangle = null;
+         var u:Rectangle = null;
+         var maxW:Number = 0;
+         var minH:Number = Number.MAX_VALUE;
+         var i:int = 0;
+         if(!bar || !space)
+         {
+            return null;
+         }
+         if(!c || c.numChildren == 0)
+         {
+            return bar.getBounds(space);
+         }
+         while(i < c.numChildren)
+         {
+            b = c.getChildAt(i).getBounds(space);
+            if(b.width > 0 && b.height > 0)
+            {
+               all.push(b);
+               maxW = Math.max(maxW,b.width);
+            }
+            i++;
+         }
+         i = 0;
+         while(i < all.length)
+         {
+            if(Rectangle(all[i]).width >= maxW * 0.5)
+            {
+               minH = Math.min(minH,Rectangle(all[i]).height);
+            }
+            i++;
+         }
+         i = 0;
+         while(i < all.length)
+         {
+            b = Rectangle(all[i]);
+            if(b.width >= maxW * 0.5 && b.height <= minH * 2 + 0.5)
+            {
+               u = !u ? b : u.union(b);
+            }
+            i++;
+         }
+         return !u ? bar.getBounds(space) : u;
+      }
+
+      // The experience line lined up with the health bar (the owner, 2026-10-13: "The level experience bar above the
+      // health bar is out of position"): it runs from l to r, its bottom at bottom - the health bar's shown left edge and
+      // right end, as far above the health bar as the stamina bar is below it. The game's own thickness is kept. The
+      // level-up mark keeps its place beside the line's right end, as in the game.
+      private function hpmPlaceXp(l:Number, r:Number, bottom:Number) : void
+      {
+         var bar:DisplayObject = this.mcExperienceBar;
+         var mark:DisplayObject = this.mcNewLevelIndcator;
+         var line:Rectangle = null;
+         var mb:Rectangle = null;
+         var dx:Number = 0;
+         var dy:Number = 0;
+         var m:Matrix = null;
+         if(!bar || !(r > l))
+         {
+            return;
+         }
+         line = this.hpmLineBox(bar,this);
+         if(!line || line.width <= 0)
+         {
+            return;
+         }
+         if(mark)
+         {
+            mb = mark.getBounds(this);
+            dx = mb.left - line.right;
+            dy = mb.top - line.bottom;
+         }
+         // through the matrix: the bar is a CLIK UIComponent, whose scaleX reads its size over its first size (1 at start,
+         // not the timeline's 0.984) and whose scaleX setter resizes it as a component
+         m = bar.transform.matrix;
+         m.a *= (r - l) / line.width;
+         bar.transform.matrix = m;
+         line = this.hpmLineBox(bar,this);
+         m = bar.transform.matrix;
+         m.tx += l - line.left;
+         m.ty += bottom - line.bottom;
+         bar.transform.matrix = m;
+         if(mark && mb)
+         {
+            line = this.hpmLineBox(bar,this);
+            mark.x += line.right + dx - mb.left;
+            mark.y += line.bottom + dy - mb.top;
+         }
       }
 
       // moves every object in list by the step that puts key's centre at (x, cy) - mode 1: its right edge at x, mode 2: its
@@ -331,6 +448,12 @@
          if(!root || !root.visible || root.alpha <= 0 || depth < 0)
          {
             return box;
+         }
+         if(root == this.mcExperienceBar)
+         {
+            // by its line, not its value mask (hpmLineBox)
+            b = this.hpmLineBox(root,this);
+            return !b ? box : (!box ? b : box.union(b));
          }
          if(root is DisplayObjectContainer && DisplayObjectContainer(root).numChildren > 0 && depth > 0)
          {
@@ -653,7 +776,7 @@
             d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : DisplayObject(this.hpmBoxes[k]);
             if(d && d.stage && scr.width > 0 && scr.height > 0)
             {
-               b = d.getBounds(stage);
+               b = k != 7 ? d.getBounds(stage) : this.hpmXpBox(stage);
                s += HPM_PART_KEYS[k] + ":1:" + this.hpmPct(b.left - scr.left,scr.width) + ":" + this.hpmPct(b.top - scr.top,scr.height) + ":"
                   + this.hpmPct(b.right - scr.left,scr.width) + ":" + this.hpmPct(b.bottom - scr.top,scr.height) + ";";
             }
@@ -664,6 +787,18 @@
             k++;
          }
          this.hpmReport = s;
+      }
+
+      // the Experience part's box: its line, and the level-up mark while the game shows it - never the bar's value mask,
+      // which hung off the screen's left edge at a low value and left the page's left / right slider no room to the left
+      private function hpmXpBox(space:DisplayObject) : Rectangle
+      {
+         var b:Rectangle = this.hpmLineBox(this.mcExperienceBar,space);
+         if(b && this.mcNewLevelIndcator && this.mcNewLevelIndcator.visible)
+         {
+            b = b.union(this.mcNewLevelIndcator.getBounds(space));
+         }
+         return !b ? DisplayObject(this.hpmBoxes[7]).getBounds(space) : b;
       }
 
       private function hpmPct(v:Number, whole:Number) : String
