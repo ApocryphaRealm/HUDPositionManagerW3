@@ -428,6 +428,21 @@ row("HPM_ZoomHint",
     "ゲーム本来のズームに対する割合です。ゲームのズームは屋外、屋内、ボートの上で自動的に変わります。100を超えると近くなります。",
     "게임 자체 확대의 백분율입니다. 게임의 확대는 야외, 실내, 배 위에서 저절로 바뀝니다. 100 초과: 더 가깝게.",
     "游戏自身缩放的百分比，游戏缩放会在室外、室内和乘船时自动变化。超过 100：更近。")
+row("HPM_SquareMap", "Square minimap",
+    "Quadratische Minikarte", "Mini-carte carrée", "Minimapa cuadrado", "Minimappa quadrata", "Kwadratowa minimapa",
+    "Čtvercová minimapa", "Квадратная мини-карта", "四角いミニマップ", "사각형 미니맵", "方形小地图")
+row("HPM_SquareMapHint",
+    "On: the minimap is square, framed with the game's ring art drawn square. Off: the game's own round minimap. Reset leaves the shape as it is.",
+    "An: Die Minikarte ist quadratisch, gerahmt mit dem Ring des Spiels als Quadrat. Aus: die runde Minikarte des Spiels. Zurücksetzen lässt die Form, wie sie ist.",
+    "Activé : la mini-carte est carrée, encadrée par l'anneau du jeu dessiné en carré. Désactivé : la mini-carte ronde du jeu. La réinitialisation ne change pas la forme.",
+    "Activado: el minimapa es cuadrado, enmarcado con el anillo del juego dibujado en cuadrado. Desactivado: el minimapa redondo del juego. Restablecer no cambia la forma.",
+    "Attivo: la minimappa è quadrata, incorniciata dall'anello del gioco disegnato a quadrato. Disattivo: la minimappa rotonda del gioco. Il ripristino lascia la forma com'è.",
+    "Wł.: minimapa jest kwadratowa, w ramce z pierścienia gry narysowanego jako kwadrat. Wył.: okrągła minimapa gry. Reset nie zmienia kształtu.",
+    "Zap.: minimapa je čtvercová, v rámu z prstence hry nakresleného jako čtverec. Vyp.: kulatá minimapa hry. Obnovení tvar nemění.",
+    "Вкл.: мини-карта квадратная, в рамке из кольца игры, нарисованного квадратом. Выкл.: круглая мини-карта игры. Сброс не меняет форму.",
+    "オン：ミニマップは四角く、ゲームのリングを四角く描いた枠で囲まれます。オフ：ゲーム本来の丸いミニマップ。リセットしても形は変わりません。",
+    "켜기: 미니맵이 사각형이 되고, 게임의 링을 사각형으로 그린 테두리가 둘러쌉니다. 끄기: 게임 본래의 둥근 미니맵. 초기화해도 모양은 그대로입니다.",
+    "开：小地图为方形，以画成方形的游戏圆环为边框。关：游戏原本的圆形小地图。重置不会改变形状。")
 row("HPM_Hide", "Hide",
     "Ausblenden", "Masquer", "Ocultar", "Nascondi", "Ukryj", "Skrýt", "Скрыть", "非表示", "숨기기", "隐藏")
 row("HPM_Show", "Show",

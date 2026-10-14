@@ -41,7 +41,7 @@ namespace settings
 		}
 	};
 
-	// The default layout's Combined widgets: the player widget's eight parts moving as one (the owner's preset, 2026-10-14)
+	// The default Combined widgets: none, at no offset - the game's own layout (Settings.cpp DefaultElement)
 	Group DefaultGroup();
 
 	struct Values
@@ -50,6 +50,10 @@ namespace settings
 		bool                 alwaysVisible = false; // [General] bAlwaysVisible - the whole HUD (phase 2)
 		bool                 preview = false;       // [General] bPreview - "Show every element" (phase 3)
 		bool                 unlocked = false;      // [General] bUnlocked - "Free placement": past the screen's edges
+		// [General] bSquareMinimap - the minimap's shape: square (the mod's look, on by default) or the game's round one
+		// (the owner, 2026-10-14: "The minimap shape should be toggleable though"). A look, not a place: Reset and presets
+		// leave it alone. Sent to the minimap movie as a 16th field on the Minimap element (LayoutString).
+		bool                 squareMinimap = true;
 		std::vector<Element> elements = Defaults();
 		Group                group = DefaultGroup();
 		int                  logLevel = 2;          // [Log] uLogLevel (rule 14: shipped at info)

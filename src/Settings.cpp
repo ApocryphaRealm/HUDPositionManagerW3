@@ -37,6 +37,7 @@ namespace settings
 				{ "General.bAlwaysVisible", a_v.alwaysVisible ? "1" : "0" },
 				{ "General.bPreview", a_v.preview ? "1" : "0" },
 				{ "General.bUnlocked", a_v.unlocked ? "1" : "0" },
+				{ "General.bSquareMinimap", a_v.squareMinimap ? "1" : "0" },
 			};
 			const auto& all = elements::All();
 			for (std::size_t i = 0; i < all.size() && i < a_v.elements.size(); ++i) {
@@ -248,44 +249,13 @@ namespace settings
 		}
 	}
 
-	// The default layout is the owner's own (2026-10-14: "I just saved my current values as a preset. So just make my
-	// preset the default."), his "ApocryphaRealm Preset" - shipped too, as presets\Default layout.ini. A fresh install
-	// with no settings file shows it, and Reset this element / Reset every element / Reset the shared position go back
-	// to it. Every element not listed is where the game puts it, at its own size. Percent of the screen, as fX / fY.
-	namespace
-	{
-		struct DefaultPlace
-		{
-			const char* key;
-			float       x, y;
-			bool        alwaysVisible;
-		};
-		constexpr DefaultPlace kDefaultLayout[]{
-			{ "Minimap", 0.24f, -3.76f, false },
-			{ "Quests", 1.13f, -7.22f, false },
-			{ "Medallion", 2.18f, 84.82f, true },
-			{ "Health", 2.18f, 84.82f, true },
-			{ "Experience", 2.18f, 84.82f, true },
-			{ "Stamina", 1.78f, 84.32f, true },
-			{ "Adrenaline", 0.00f, 83.82f, true },
-			{ "Toxicity", -0.62f, 83.32f, true },
-			{ "Sign", 1.28f, 83.82f, true },
-			{ "Skull", 0.70f, 83.42f, true },
-			{ "Buffs", -17.50f, -14.30f, false },
-			{ "QuickItems", -5.00f, -73.00f, false },
-			{ "Dialogue", -2.08f, 0.00f, false },   // with its anchor on (Elements.h placeDefault): at the right edge
-			{ "Hints", 6.90f, 0.00f, false },
-		};
-	}
-
-	Group DefaultGroup()
-	{
-		Group g;
-		g.members = { "Medallion", "Health", "Experience", "Stamina", "Adrenaline", "Toxicity", "Sign", "Skull" };
-		g.x = -5.20f;
-		g.y = 1.50f;
-		return g;
-	}
+	// The defaults are the game's own layout (the owner, 2026-10-14, a standing rule: "Let's ship the game's default values
+	// as the default, but let's keep our bar designs or graphical alterations as the new default ... when they reset it,
+	// it should go back to default base game values"): every element where the game puts it, at its own size, no anchor,
+	// no Combined widgets. A fresh install with no settings file shows that, and Reset this element / Reset every element /
+	// Reset the shared position go back to it. The square minimap and the straight bars are the mod's look, not a
+	// setting. The owner's own layout ships as an optional preset, presets\ApocryphaRealm Preset.ini.
+	Group DefaultGroup() { return Group{}; }
 
 	Element DefaultElement(std::size_t a_index)
 	{
@@ -293,13 +263,6 @@ namespace settings
 		if (a_index >= elements::Count()) return e;
 		const auto& el = elements::All()[a_index];
 		e.place = el.placeKey && el.placeDefault;
-		for (const auto& d : kDefaultLayout) {
-			if (std::string_view(d.key) == el.key) {
-				e.x = d.x;
-				e.y = d.y;
-				e.alwaysVisible = d.alwaysVisible && el.fades;
-			}
-		}
 		return e;
 	}
 
@@ -364,6 +327,7 @@ namespace settings
 		auto& v = g_values;
 		if (const auto* s = Get(entries, "General.bEnabled")) v.enabled = Flag(*s);
 		if (const auto* s = Get(entries, "General.bUnlocked")) v.unlocked = Flag(*s);
+		if (const auto* s = Get(entries, "General.bSquareMinimap")) v.squareMinimap = Flag(*s);
 		const int changed = ReadLayout(entries, v);
 		if (const auto* s = Get(entries, "Log.uLogLevel")) v.logLevel = std::atoi(s->c_str());
 		Clamp(v);
@@ -561,6 +525,7 @@ namespace settings
 			const auto& e = a_v.elements[i];
 			s += std::format("|{},{},{},{},{},{},{},{},{},{},{},{},{:.0f},{},{}", all[i].key, n(e.x), n(e.y), n(e.scale), n(e.stretchX), n(e.stretchY),
 				e.hide ? 1 : 0, e.show, e.alwaysVisible ? 1 : 0, e.place ? 1 : 0, e.moveWith, a_v.group.Has(all[i].key) ? 1 : 0, e.zoom, e.fill, e.grow);
+			if (std::string_view(all[i].key) == "Minimap") s += a_v.squareMinimap ? ",1" : ",0";   // the shape (16th field)
 		}
 		return s;
 	}

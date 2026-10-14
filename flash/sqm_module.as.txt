@@ -15,6 +15,14 @@
       private var sqmLine:Sprite;
       private var sqmRing:DisplayObject;
       private var sqmNorthRotation:Number = NaN;
+      // the shape (the owner, 2026-10-14: "The minimap shape should be toggleable though"): square by default, the
+      // game's round minimap when the page's Square minimap switch is off - switched live, in this one movie
+      private var sqmSquareOn:Boolean = true;
+      private var sqmMaskWanted:Boolean = true;   // what the game last asked EnableMask for
+      private var sqmShadingX:Number = NaN;       // the game's own edge fade, before it was grown and cut square
+      private var sqmShadingY:Number = NaN;
+      private var sqmShadingSX:Number = NaN;
+      private var sqmShadingSY:Number = NaN;
       private var sqmLastX:Number = NaN;
       private var sqmLastY:Number = NaN;
       private var sqmLastW:Number = NaN;
@@ -125,11 +133,14 @@
          // the edge fade: the game's round shading clip, grown to cover the square's corners and cut square
          if(this.mcShading)
          {
-            this.sqmGrowAboutCentre(this.mcShading,Math.SQRT2);
-            this.mcShading.mask = this.sqmMaskShading;
+            this.sqmShadingX = this.mcShading.x;
+            this.sqmShadingY = this.mcShading.y;
+            this.sqmShadingSX = this.mcShading.scaleX;
+            this.sqmShadingSY = this.mcShading.scaleY;
          }
          this.sqmReady = true;
-         this.sqmEnableMask(this.mcCommonMap.mask != null);
+         this.sqmMaskWanted = this.mcCommonMap.mask != null;
+         this.sqmApplyShape();
          addEventListener(Event.ENTER_FRAME,this.sqmOnFrame,false,0,true);
          this.sqmOnFrame(null);
       }
@@ -146,14 +157,56 @@
 
       public function sqmEnableMask(on:Boolean) : Boolean
       {
+         this.sqmMaskWanted = on;
          if(!this.sqmReady)
          {
             return false;
          }
-         this.mcCommonMap.mask = !!on ? this.sqmMaskCommon : null;
-         this.mcHubMap.mask = !!on ? this.sqmMaskHub : null;
-         this.mcInteriorMap.mask = !!on ? this.sqmMaskInterior : null;
+         this.mcCommonMap.mask = !on ? null : (this.sqmSquareOn ? this.sqmMaskCommon : this.mcCommonMapMask);
+         this.mcHubMap.mask = !on ? null : (this.sqmSquareOn ? this.sqmMaskHub : this.mcHubMapMask);
+         this.mcInteriorMap.mask = !on ? null : (this.sqmSquareOn ? this.sqmMaskInterior : this.mcInteriorMapMask);
          return true;
+      }
+
+      // square or round, live: the square masks, plate, line and the grown, square-cut edge fade - or the game's own
+      // round masks, ring art and edge fade, exactly as the game set them up
+      public function sqmSetSquare(on:Boolean) : void
+      {
+         if(on == this.sqmSquareOn)
+         {
+            return;
+         }
+         this.sqmSquareOn = on;
+         this.sqmApplyShape();
+      }
+
+      private function sqmApplyShape() : void
+      {
+         if(!this.sqmReady)
+         {
+            return;
+         }
+         this.sqmFrame.visible = this.sqmSquareOn;
+         this.sqmLine.visible = this.sqmSquareOn;
+         if(this.sqmRing)
+         {
+            this.sqmRing.visible = !this.sqmSquareOn;
+         }
+         if(this.mcShading && !isNaN(this.sqmShadingX))
+         {
+            this.mcShading.x = this.sqmShadingX;
+            this.mcShading.y = this.sqmShadingY;
+            this.mcShading.scaleX = this.sqmShadingSX;
+            this.mcShading.scaleY = this.sqmShadingSY;
+            this.mcShading.mask = null;
+            if(this.sqmSquareOn)
+            {
+               this.sqmGrowAboutCentre(this.mcShading,Math.SQRT2);
+               this.mcShading.mask = this.sqmMaskShading;
+            }
+         }
+         this.sqmEnableMask(this.sqmMaskWanted);
+         this.sqmNorthRotation = NaN;   // the north mark is placed again for this shape on the next frame
       }
 
       // =============================================================================================================
@@ -217,7 +270,7 @@
       }
 
       // "1|<enabled>|<unlocked>|<alwaysVisible>|<preview>|<groupX>|<groupY>|<key>,<x>,<y>,<scale>,<length>,<height>,<hide>,
-      // <show>,<always>,<place>,<moveWith>,<groupMember>,<zoom>,<fill>,<grow>|..." (Settings.cpp LayoutString)
+      // <show>,<always>,<place>,<moveWith>,<groupMember>,<zoom>,<fill>,<grow>[,<square> on Minimap]|..." (Settings.cpp LayoutString)
       public function hpmSetLayout(spec:String) : void
       {
          var parts:Array = !spec ? [] : spec.split("|");
@@ -261,6 +314,10 @@
             o["with"] = f[10];
             o.group = f[11] == "1";
             o.zoom = Number(f[12]);
+            if(f[0] == "Minimap")
+            {
+               this.sqmSetSquare(f.length < 16 || f[15] != "0");
+            }
             o.dirty = true;   // re-applied on the next frame, from the game's place
             o.anchorOk = false;
          }
@@ -1035,6 +1092,21 @@
       // the half side over max(|cos|, |sin|) of its direction - the clip is scaled out by that much and its glyph back in
       public function sqmPlaceNorth() : void
       {
+         if(!this.sqmSquareOn)
+         {
+            // round: the clip and its glyph back to the game's own size and place, on the ring
+            this.mcNorthSign.scaleX = 1;
+            this.mcNorthSign.scaleY = 1;
+            if(this.mcNorthSign.numChildren > 0 && !isNaN(this.sqmGlyphX0))
+            {
+               this.mcNorthSign.getChildAt(0).scaleX = 1;
+               this.mcNorthSign.getChildAt(0).scaleY = 1;
+               this.mcNorthSign.getChildAt(0).x = this.sqmGlyphX0;
+               this.mcNorthSign.getChildAt(0).y = this.sqmGlyphY0;
+            }
+            this.sqmNorthRotation = this.mcNorthSign.rotation;
+            return;
+         }
          var dir:Number = (this.mcNorthSign.rotation - 90) * Math.PI / 180;
          var m:Number = Math.max(Math.abs(Math.cos(dir)),Math.abs(Math.sin(dir)));
          var glyph:DisplayObject = null;

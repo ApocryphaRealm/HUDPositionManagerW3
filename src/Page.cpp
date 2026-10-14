@@ -252,6 +252,11 @@ namespace page
 					changed = true;
 				}
 				Hint(TR("HPM_ZoomHint", "Percent of the game's own zoom, which changes by itself outdoors, indoors and on a boat. Over 100: closer."));
+				bool square = a_v.squareMinimap;
+				if (Switch((std::string(TR("HPM_SquareMap", "Square minimap")) + id + "q").c_str(), &square)) {
+					settings::Update([square](settings::Values& v) { v.squareMinimap = square; });
+				}
+				Hint(TR("HPM_SquareMapHint", "On: the minimap is square, framed with the game's ring art drawn square. Off: the game's own round minimap. Reset leaves the shape as it is."));
 			}
 			changed |= Switch((std::string(TR("HPM_Hide", "Hide")) + id + "h").c_str(), &e.hide);
 			if (!e.hide) {
@@ -326,7 +331,7 @@ namespace page
 				changed |= PercentSlider((std::string(TR("HPM_MoveY", "Move up / down")) + "##groupy").c_str(), &group.y, minY, maxY);
 				held.y = ImGui::IsItemActive();
 				if (ImGui::Button((std::string(TR("HPM_GroupReset", "Reset the shared position")) + "##groupreset").c_str())) {
-					group.x = settings::DefaultGroup().x;   // the default layout's shared position
+					group.x = settings::DefaultGroup().x;   // the default shared position (none: the game's layout)
 					group.y = settings::DefaultGroup().y;
 					changed = true;
 				}

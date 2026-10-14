@@ -5,12 +5,12 @@ Version 0.0.0
 
 Move, resize or hide every part of the HUD from a settings page in the Apocrypha Menu Framework.
 
-THE DEFAULT LAYOUT
-Out of the box the HUD starts in the mod's default layout: the player widget (medallion and bars) in the bottom left
-corner, its parts moving as one; the effects row above the bars; the dialogue choices at the right edge of the screen;
-the minimap and quest list in the top right corner; the quick items and button hints moved from the game's places.
-Every other element is where the game puts it. The same layout ships as a preset, "Default layout", and Reset goes
-back to it.
+OUT OF THE BOX
+Every element starts where the game puts it, at the game's own size, and Reset always goes back there. The mod's own
+look is on from the start: the square minimap (a switch turns it back to the game's round one) and the straight
+stamina, adrenaline and toxicity bars. A ready-made layout, "ApocryphaRealm Preset", ships as an optional preset - the
+player widget in the bottom left, its parts moving as one, the effects row above it and the dialogue choices at the
+right edge. Load it from the Presets tab if you want it.
 
 
 WHAT IT DOES
@@ -22,11 +22,13 @@ WHAT IT DOES
 - Move left / right and up / down, from the game's own place. Size, and Length / Height for the bars.
 - Hide, or show only in combat / only out of combat. Always visible for the elements the game fades on its own.
 - Move with: an element follows another one. Combined widgets: any set of widgets moves as one on shared sliders.
-- The minimap: square, framed with the game's own ring art drawn square, with a zoom slider (50 to 300 percent of the
-  game's own zoom, set live). Stamina, adrenaline and toxicity are straight bars under the health bar.
+- The minimap: square, framed with the game's own ring art drawn square, or the game's own round minimap ("Square
+  minimap" on its tab, switched live); a zoom slider (50 to 300 percent of the game's own zoom, set live). Stamina,
+  adrenaline and toxicity are straight bars under the health bar.
 - Presets: save whole layouts, load someone else's, update or delete them. Files in
-  bin\x64_dx12\HUDPositionManager\presets\ ("Default layout.ini" is the layout the mod starts with).
-- Reset this element / Reset every element take you back to the default layout. "Apply my layout" off shows the
+  bin\x64_dx12\HUDPositionManager\presets\ ("ApocryphaRealm Preset.ini" ships with the mod, optional).
+- Reset this element / Reset every element take you back to the game's own layout (the minimap's shape stays as you
+  set it). "Apply my layout" off shows the
   game's own layout without losing yours. "Free placement" lets the sliders go past the screen's edges.
 - Changes show in the HUD at once and are saved by themselves.
 
@@ -34,7 +36,7 @@ WHAT IT DOES
 SETTINGS
 Open the Apocrypha Menu Framework and pick HUD Position Manager. Tabs: Presets, Layout (one tab per element) and
 Combined widgets. Settings are kept in bin\x64_dx12\HUDPositionManager\HUDPositionManager.ini; delete it to start again
-from the default layout.
+from the game's own layout.
 
 
 INSTALL
