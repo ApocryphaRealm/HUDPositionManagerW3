@@ -57,6 +57,8 @@ namespace elements
 			{ .key = "Stamina", .english = "Stamina bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
 			{ .key = "Adrenaline", .english = "Adrenaline bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
 			{ .key = "Toxicity", .english = "Toxicity bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
+			// Witcher Gear Overhaul's Magic, a pool of its own that only Signs spend: hidden until a mod shows it (hpmShowMagic)
+			{ .key = "Magic", .english = "Magic bar", .module = nullptr, .movie = Movie::kWolf, .stretch = true, .fades = true, .bar = true },
 			{ .key = "Sign", .english = "Sign badge", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			{ .key = "Skull", .english = "Toxicity skull", .module = nullptr, .movie = Movie::kWolf, .fades = true },
 			// the effects (food, potions, oils): just above the player widget by default

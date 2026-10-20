@@ -295,6 +295,9 @@ row("HPM_El_Adrenaline", "Adrenaline bar",
 row("HPM_El_Toxicity", "Toxicity bar",
     "Toxizitätsleiste", "Barre de toxicité", "Barra de toxicidad", "Barra della tossicità", "Pasek toksyczności",
     "Ukazatel toxicity", "Полоса токсичности", "毒性バー", "독성 바", "毒性条")
+row("HPM_El_Magic", "Magic bar",
+    "Magieleiste", "Barre de magie", "Barra de magia", "Barra della magia", "Pasek magii",
+    "Ukazatel magie", "Полоса магии", "魔力バー", "마력 바", "魔力条")
 row("HPM_El_Sign", "Sign badge",
     "Zeichen-Abzeichen", "Badge du Signe", "Insignia de la señal", "Distintivo del segno", "Odznaka znaku",
     "Odznak znamení", "Значок знака", "印のバッジ", "표식 배지", "法印徽章")

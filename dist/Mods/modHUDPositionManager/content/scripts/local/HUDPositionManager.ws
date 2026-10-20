@@ -297,6 +297,63 @@ public function HPM_SetFocusNumber(current : float, maxValue : float, show : boo
 	hpmFxFocusNum.InvokeSelfThreeArgs(FlashArgNumber(current), FlashArgNumber(maxValue), FlashArgBool(show));
 }
 
+// A separate MAGIC bar under the toxicity bar (Witcher Gear Overhaul's Magic, spent only by Signs). Hidden until shown.
+// The mod calls the movie's functions itself through a guarded GetMemberFlashFunction (these are the reference shape):
+// hpmSetMagic(current : Number, max : Number), hpmShowMagic(show : Boolean), hpmShowMagicNumber(show : Boolean).
+@addField(CR4HudModuleWolfHead)
+var hpmFxMagic : CScriptedFlashFunction;
+
+@addField(CR4HudModuleWolfHead)
+var hpmFxMagicShow : CScriptedFlashFunction;
+
+@addField(CR4HudModuleWolfHead)
+var hpmFxMagicNum : CScriptedFlashFunction;
+
+// the bar's fill (current of max) and its "current / max" number
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetMagic(current : float, maxValue : float)
+{
+	if (!hpmFxMagic)
+	{
+		hpmFxMagic = GetModuleFlash().GetMemberFlashFunction("hpmSetMagic");
+		if (!hpmFxMagic)
+		{
+			return;
+		}
+	}
+	hpmFxMagic.InvokeSelfTwoArgs(FlashArgNumber(current), FlashArgNumber(maxValue));
+}
+
+// show or hide the Magic bar (hidden by default, so without Witcher Gear Overhaul the widget is unchanged)
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_ShowMagic(show : bool)
+{
+	if (!hpmFxMagicShow)
+	{
+		hpmFxMagicShow = GetModuleFlash().GetMemberFlashFunction("hpmShowMagic");
+		if (!hpmFxMagicShow)
+		{
+			return;
+		}
+	}
+	hpmFxMagicShow.InvokeSelfOneArg(FlashArgBool(show));
+}
+
+// show or hide the small "current / max" number past the Magic bar's right end
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_ShowMagicNumber(show : bool)
+{
+	if (!hpmFxMagicNum)
+	{
+		hpmFxMagicNum = GetModuleFlash().GetMemberFlashFunction("hpmShowMagicNumber");
+		if (!hpmFxMagicNum)
+		{
+			return;
+		}
+	}
+	hpmFxMagicNum.InvokeSelfOneArg(FlashArgBool(show));
+}
+
 // Each part's box on the screen, for the page's slider ranges ("" when the movie is not ours).
 @addField(CR4HudModuleWolfHead)
 var hpmFxWolfReport : CScriptedFlashFunction;

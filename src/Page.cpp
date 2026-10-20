@@ -155,6 +155,7 @@ namespace page
 			if (k == "Stamina") return TR("HPM_El_Stamina", "Stamina bar");
 			if (k == "Adrenaline") return TR("HPM_El_Adrenaline", "Adrenaline bar");
 			if (k == "Toxicity") return TR("HPM_El_Toxicity", "Toxicity bar");
+			if (k == "Magic") return TR("HPM_El_Magic", "Magic bar");
 			if (k == "Sign") return TR("HPM_El_Sign", "Sign badge");
 			if (k == "Skull") return TR("HPM_El_Skull", "Toxicity skull");
 			if (k == "Buffs") return TR("HPM_El_Buffs", "Effects (food, potions)");

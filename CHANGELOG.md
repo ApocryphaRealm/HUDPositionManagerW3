@@ -14,6 +14,18 @@ Every version, beside the code it describes (rule 61).
   - `hpmSetFocusNumber(cur, max, show)` / `HPM_SetFocusNumber(cur, max, show)`: a small "current / max" number past
     the bar's right end (hidden until a mod asks; it moves, scales and hides with the adrenaline bar). The font is the
     game's `$NormalFont` - to be checked in game.
+- **A Magic bar of its own** (Witcher Gear Overhaul's Magic is a separate pool that only Signs spend; the adrenaline bar is
+  the game's again). A fourth bar in the player widget, under the toxicity bar, drawn like the others (dark track, two-tone
+  fill, thin border) in an arcane violet-blue. It is hidden until a mod shows it, so without one the widget looks exactly as
+  before:
+  - `hpmSetMagic(current, max)` (movie, Numbers) / `HPM_SetMagic(current, max)` (script): the fill is current / max, and the
+    number shown is "current / max";
+  - `hpmShowMagic(show)` (Boolean) / `HPM_ShowMagic(show)`: show or hide the bar (hidden by default);
+  - `hpmShowMagicNumber(show)` (Boolean) / `HPM_ShowMagicNumber(show)`: the small "current / max" number past the bar's right
+    end (font `$NormalFont`, to be checked in game);
+  - on the settings page it is the **Magic bar** tab, like the other bars: move, size, length and height, hide, show in or out
+    of combat, always visible, move with another widget, the Combined widgets group.
+  - the three focus functions above stay, harmless with the vanilla default.
 - The script side lives on the player widget module (`CR4HudModuleWolfHead`) beside the layout calls; each is a
   no-op when the movie is not HPM's.
 

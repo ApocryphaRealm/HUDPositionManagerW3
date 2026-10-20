@@ -13,10 +13,10 @@
       // visibility itself, e.g. for Ciri). Adrenaline carries marks at its thirds - the three points it fills. The
       // skull badge sits at the toxicity bar's left end as in the game, the sign badge beside it.
       // ---------------------------------------------------------------------------------------------------------------
-      private static const HPM_COLOURS:Array = [0xE8B83A,0x4E9BDA,0x62B83E];   // stamina, adrenaline, toxicity
+      private static const HPM_COLOURS:Array = [0xE8B83A,0x4E9BDA,0x62B83E,0x8A4FE0];   // stamina, adrenaline, toxicity, magic (arcane violet-blue)
       private var hpmFills:Array = [];      // the fill's mask per bar (scaleX = value)
       private var hpmRows:Array = [];       // each bar's sprite
-      private var hpmValues:Array = [0,0,0];
+      private var hpmValues:Array = [0,0,0,0];
 
       private function hpmShade(c:uint, k:Number) : uint
       {
@@ -185,6 +185,76 @@
          this.hpmFocusTf.visible = this.hpmFocusNumOn && row.visible;
       }
 
+      // ---------------------------------------------------------------------------------------------------------------
+      // A Magic bar of its own (Witcher Gear Overhaul: Magic is a separate pool that only Signs spend). The fourth bar,
+      // under the toxicity bar, drawn like the others in an arcane colour. Hidden until a mod calls hpmShowMagic(true), so
+      // without such a mod the widget is exactly as before. It is the part "Magic" of the layout: moved, sized, hidden and
+      // shown like the other bars. hpmSetMagic(cur, max) sets the fill (cur / max) and the optional "cur / max" number.
+      // ---------------------------------------------------------------------------------------------------------------
+      private var hpmMagicOn:Boolean = false;
+      private var hpmMagicNumOn:Boolean = false;
+      private var hpmMagicTf:TextField = null;
+      private var hpmMagicCur:Number = 0;
+      private var hpmMagicMax:Number = 0;
+
+      // the fill and the number: cur of max (max <= 0 = empty)
+      public function hpmSetMagic(cur:Number, max:Number) : void
+      {
+         this.hpmMagicCur = cur;
+         this.hpmMagicMax = max;
+         this.hpmSet(3,max > 0 ? cur * 100 / max : 0);
+         if(this.hpmMagicTf)
+         {
+            this.hpmMagicTf.text = Math.round(cur) + " / " + Math.round(max);
+         }
+         this.hpmPlaceMagicNumber();
+      }
+
+      // show (true) or hide (false) the Magic bar; the default is hidden
+      public function hpmShowMagic(show:Boolean) : void
+      {
+         this.hpmMagicOn = show;
+         this.hpmApplyParts();
+      }
+
+      // show or hide the small "current / max" number past the Magic bar's right end (the font is the game's $NormalFont)
+      public function hpmShowMagicNumber(show:Boolean) : void
+      {
+         var fmt:TextFormat = null;
+         this.hpmMagicNumOn = show;
+         if(show && !this.hpmMagicTf && this.hpmRows.length > 3)
+         {
+            this.hpmMagicTf = new TextField();
+            fmt = new TextFormat("$NormalFont",Math.max(10,this.hpmFocusH * 1.15),0xFFFFFF);
+            this.hpmMagicTf.defaultTextFormat = fmt;
+            this.hpmMagicTf.selectable = false;
+            this.hpmMagicTf.mouseEnabled = false;
+            this.hpmMagicTf.autoSize = "left";
+            this.hpmMagicTf.wordWrap = false;
+            this.hpmMagicTf.multiline = false;
+            this.hpmMagicTf.text = Math.round(this.hpmMagicCur) + " / " + Math.round(this.hpmMagicMax);
+            addChild(this.hpmMagicTf);
+         }
+         this.hpmPlaceMagicNumber();
+      }
+
+      private function hpmPlaceMagicNumber() : void
+      {
+         var row:DisplayObject = null;
+         var b:Rectangle = null;
+         if(!this.hpmMagicTf || this.hpmRows.length < 4)
+         {
+            return;
+         }
+         row = DisplayObject(this.hpmRows[3]);
+         b = row.getBounds(this);
+         this.hpmMagicTf.scaleX = Math.max(0.1,Math.abs(row.scaleY));
+         this.hpmMagicTf.scaleY = Math.max(0.1,Math.abs(row.scaleY));
+         this.hpmMagicTf.x = b.right + 4;
+         this.hpmMagicTf.y = b.top + (b.height - this.hpmMagicTf.height) / 2;
+         this.hpmMagicTf.visible = this.hpmMagicNumOn && row.visible;
+      }
+
       // length along an object's art: a straight bar's width; an arc's chord stretched by a quarter-circle's arc/chord
       private function hpmLength(d:DisplayObject, straight:Boolean) : Number
       {
@@ -271,6 +341,13 @@
             this.hpmRows.push(row);
             i++;
          }
+         // the Magic bar (hidden until hpmShowMagic): under the toxicity bar, 0.9 of its length
+         row = this.hpmMakeBar(HPM_COLOURS[3],lens[2] * 0.9,t,false);
+         row.x = left;
+         row.y = y + (t + gap) * 3;
+         row.visible = false;
+         addChildAt(row,getChildIndex(this.mcHealthBar));
+         this.hpmRows.push(row);
          this.hpmHideRound();
          this.hpmRowBase = [];
          i = 0;
@@ -307,7 +384,7 @@
          }
          this.hpmApplyParts();
          i = 0;
-         while(i < 3)
+         while(i < 4)
          {
             this.hpmSet(i,this.hpmValues[i]);
             i++;
@@ -524,11 +601,11 @@
       // HUDPositionManager.ws hands the whole layout string in through hpmSetLayout (the same string as the minimap's)
       // and combat through hpmSetCombat, and reads hpmReport (each part's box, for the page's slider ranges).
       // ==============================================================================================================
-      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Medallion","Health","Experience"];
+      private static const HPM_PART_KEYS:Array = ["Stamina","Adrenaline","Toxicity","Sign","Skull","Medallion","Health","Experience","Magic"];
       private var hpmRowBase:Array = [];      // [x, y] per bar, from hpmBarsInit
-      private var hpmBoxes:Array = [null,null,null,null,null,null,null,null];   // the containers of parts 3..7
-      private var hpmBoxC:Array = [null,null,null,null,null,null,null,null];    // each container's centre at rest (this widget's units)
-      private var hpmParts:Array = [null,null,null,null,null,null,null,null];
+      private var hpmBoxes:Array = [null,null,null,null,null,null,null,null,null];   // the containers of parts 3..7
+      private var hpmBoxC:Array = [null,null,null,null,null,null,null,null,null];    // each container's centre at rest (this widget's units)
+      private var hpmParts:Array = [null,null,null,null,null,null,null,null,null];
       private var hpmOff:Object = {};          // every element's move and group membership, by key ("Move with")
       private var hpmPartsOn:Boolean = true;   // "Apply my layout"
       private var hpmAllAlways:Boolean = false;   // the page's "Always visible" for the whole HUD
@@ -741,25 +818,27 @@
          var c:flash.geom.Point = null;
          var sx:Number = NaN;
          var sy:Number = NaN;
+         var ri:int = 0;
          while(k < HPM_PART_KEYS.length)
          {
             o = this.hpmPartsOn ? this.hpmParts[k] : null;
             sx = !o ? 1 : o.s * o.sx;
             sy = !o ? 1 : o.s * o.sy;
             d = !o ? new flash.geom.Point(0,0) : this.hpmMove(o);
-            if(k < 3)
+            if(k < 3 || k == 8)
             {
-               // the bars, about their own centre
-               if(k < this.hpmRows.length && k < this.hpmRowBase.length)
+               // the bars (Magic is the fourth row), about their own centre
+               ri = k == 8 ? 3 : k;
+               if(ri < this.hpmRows.length && ri < this.hpmRowBase.length)
                {
-                  row = DisplayObject(this.hpmRows[k]);
+                  row = DisplayObject(this.hpmRows[ri]);
                   row.scaleX = 1;
                   row.scaleY = 1;
                   b = row.getBounds(row);
                   row.scaleX = sx;
                   row.scaleY = sy;
-                  row.x = this.hpmRowBase[k][0] + d.x - (b.x + b.width / 2) * (sx - 1);
-                  row.y = this.hpmRowBase[k][1] + d.y - (b.y + b.height / 2) * (sy - 1);
+                  row.x = this.hpmRowBase[ri][0] + d.x - (b.x + b.width / 2) * (sx - 1);
+                  row.y = this.hpmRowBase[ri][1] + d.y - (b.y + b.height / 2) * (sy - 1);
                }
             }
             else if(this.hpmBoxes[k])
@@ -776,12 +855,17 @@
          }
          this.hpmApplyVis();
          this.hpmPlaceNumber();
+         this.hpmPlaceMagicNumber();
       }
 
       // is part k set to stay shown when the game fades the widget
       private function hpmStays(k:int) : Boolean
       {
          var o:Object = this.hpmParts[k];
+         if(k == 8 && !this.hpmMagicOn)
+         {
+            return false;
+         }
          return this.hpmPartsOn && (this.hpmAllAlways || o && o.always) && this.hpmAllowed(k);
       }
 
@@ -829,10 +913,10 @@
          var d:DisplayObject = null;
          while(k < HPM_PART_KEYS.length)
          {
-            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : DisplayObject(this.hpmBoxes[k]);
+            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : (k == 8 ? (this.hpmRows.length > 3 ? DisplayObject(this.hpmRows[3]) : null) : DisplayObject(this.hpmBoxes[k]));
             if(d)
             {
-               d.visible = this.hpmAllowed(k) && (!held || this.hpmStays(k)) && !(k < 3 && this.hpmIsCiri && k > 0);
+               d.visible = this.hpmAllowed(k) && (!held || this.hpmStays(k)) && !(k < 3 && this.hpmIsCiri && k > 0) && (k != 8 || this.hpmMagicOn);
             }
             k++;
          }
@@ -884,7 +968,7 @@
          var scr:Rectangle = this.hpmScreen();
          while(k < HPM_PART_KEYS.length)
          {
-            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : DisplayObject(this.hpmBoxes[k]);
+            d = k < 3 ? (k < this.hpmRows.length ? DisplayObject(this.hpmRows[k]) : null) : (k == 8 ? (this.hpmRows.length > 3 ? DisplayObject(this.hpmRows[3]) : null) : DisplayObject(this.hpmBoxes[k]));
             if(d && d.stage && scr.width > 0 && scr.height > 0)
             {
                b = k != 7 ? d.getBounds(stage) : this.hpmXpBox(stage);
