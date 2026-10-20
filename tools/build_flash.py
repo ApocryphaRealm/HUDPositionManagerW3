@@ -41,7 +41,7 @@ MINIMAP_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display
 WOLF_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display.DisplayObjectContainer;\n"
                 "   import flash.display.GradientType;\n"
                 "   import flash.display.Shape;\n   import flash.display.Sprite;\n   import flash.geom.Matrix;\n"
-                "   import flash.geom.Rectangle;\n   ")
+                "   import flash.geom.Rectangle;\n   import flash.text.TextField;\n   import flash.text.TextFormat;\n   ")
 DIALOG_IMPORTS = "import flash.geom.Rectangle;\n   import red.game.witcher3.utils.CommonUtils;\n   "
 
 # every anchor must occur exactly once in FFDec's decompiled class: (anchor, text inserted, "before" | "after")
@@ -71,7 +71,13 @@ MOVIES = [
              "before"),
             ("         this.mcStaminaBar.value = param1 * 100;\n", "         this.hpmSet(0,param1 * 100);\n", "after"),
             ("      public function UpdateFocusPointsBar(param1:Number) : void\n      {\n",
-             "         this.hpmSet(1,param1 * 100 / 3);\n", "after"),
+             "         this.hpmFocusValue(param1);\n", "after"),
+            # the game's own (hidden) bar follows the same maximum
+            ("            this.focusbar.value = param1 * 100 / 3;\n",
+             "            this.focusbar.value = Math.min(100,param1 * 100 / this.hpmFocusMax);\n", "after"),
+            # single-segment mode: no blink at each third (the blink stays for "full")
+            ("         _loc3_.gotoAndPlay(\"play\");\n",
+             "         if(!this.hpmBlinkOk(param1))\n         {\n            return;\n         }\n", "before"),
             ("            this.mcToxicityBar.value = param1 * 100;\n", "            this.hpmSet(2,param1 * 100);\n",
              "after"),
             ("         this.isCiriMainPlayer = param1;\n", "         this.hpmCiri(param1);\n", "after"),

@@ -36,6 +36,8 @@ $pkg = Join-Path $root $name
 if (Test-Path -LiteralPath $pkg) { throw "$pkg already exists - a version is packaged once" }
 New-Item -ItemType Directory -Force -Path $pkg | Out-Null
 Copy-Item -Path (Join-Path $repo 'dist\*') -Destination $pkg -Recurse
+# the debug database holds the builder's user folder (gate rule shipped-files-carry-no-user-folder): it never ships
+Get-ChildItem -LiteralPath $pkg -Recurse -Filter *.pdb | Remove-Item -Force
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination $pkg
 Copy-Item -LiteralPath (Join-Path $repo 'NOTICE.md') -Destination $pkg   # the GPL notice travels with every download
 

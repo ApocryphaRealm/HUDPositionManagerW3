@@ -60,23 +60,129 @@
          fill.mask = cut;
          edge.graphics.lineStyle(1,0x2A2620,1,true);
          this.hpmShape(edge.graphics,w,h);
-         if(thirds)
-         {
-            edge.graphics.lineStyle(1.5,0xC8C8C8,0.7);
-            i = 1;
-            while(i < 3)
-            {
-               edge.graphics.moveTo(w * i / 3,1.5);
-               edge.graphics.lineTo(w * i / 3,h - 1.5);
-               i++;
-            }
-         }
          row.addChild(track);
          row.addChild(fill);
          row.addChild(cut);
          row.addChild(edge);
+         if(thirds)
+         {
+            // the dividers are a shape of their own (hpmFocusTicks), so Witcher Gear Overhaul's Magic can hide them
+            this.hpmFocusTicks = new Shape();
+            this.hpmFocusW = w;
+            this.hpmFocusH = h;
+            row.addChild(this.hpmFocusTicks);
+            this.hpmDrawTicks();
+         }
          this.hpmFills.push(cut);
          return row;
+      }
+
+      // ---------------------------------------------------------------------------------------------------------------
+      // The adrenaline bar as one continuous bar (Magic, Witcher Gear Overhaul): its Magic design draws the pool as a
+      // single bar, so the dividers can be switched off and the blink at each third skipped. With nothing called, 3
+      // segments and a maximum of 3 - the game's own look.
+      // ---------------------------------------------------------------------------------------------------------------
+      private var hpmFocusTicks:Shape = null;
+      private var hpmFocusW:Number = 0;
+      private var hpmFocusH:Number = 0;
+      private var hpmFocusSegs:int = 3;
+      private var hpmFocusMax:Number = 3;
+      private var hpmFocusRaw:Number = 0;
+      private var hpmFocusTf:TextField = null;
+      private var hpmFocusNumOn:Boolean = false;
+
+      private function hpmDrawTicks() : void
+      {
+         var i:int = 1;
+         if(!this.hpmFocusTicks)
+         {
+            return;
+         }
+         this.hpmFocusTicks.graphics.clear();
+         this.hpmFocusTicks.visible = this.hpmFocusSegs >= 2;
+         if(this.hpmFocusSegs < 2)
+         {
+            return;
+         }
+         this.hpmFocusTicks.graphics.lineStyle(1.5,0xC8C8C8,0.7);
+         while(i < this.hpmFocusSegs)
+         {
+            this.hpmFocusTicks.graphics.moveTo(this.hpmFocusW * i / this.hpmFocusSegs,1.5);
+            this.hpmFocusTicks.graphics.lineTo(this.hpmFocusW * i / this.hpmFocusSegs,this.hpmFocusH - 1.5);
+            i++;
+         }
+      }
+
+      // n <= 1: no dividers, one continuous bar and no blink at a third; n >= 2: n - 1 evenly spaced marks (3 = the game's)
+      public function hpmSetFocusSegments(n:int) : void
+      {
+         this.hpmFocusSegs = n;
+         this.hpmDrawTicks();
+      }
+
+      // the adrenaline value that means "full" (the game's is 3)
+      public function setFocusMax(m:Number) : void
+      {
+         if(m > 0)
+         {
+            this.hpmFocusMax = m;
+            this.hpmSet(1,this.hpmFocusRaw * 100 / m);
+         }
+      }
+
+      // the game asked for the whole-number change blink: not in single-segment mode, except when the bar becomes full
+      public function hpmBlinkOk(points:int) : Boolean
+      {
+         return this.hpmFocusSegs > 1 || points >= this.hpmFocusMax;
+      }
+
+      // the game's adrenaline value (0..hpmFocusMax) -> the bar
+      public function hpmFocusValue(v:Number) : void
+      {
+         this.hpmFocusRaw = v;
+         this.hpmSet(1,v * 100 / this.hpmFocusMax);
+      }
+
+      // a small "current / max" number at the bar's right end: show it (true) with the two numbers, or hide it (false)
+      public function hpmSetFocusNumber(cur:Number, max:Number, show:Boolean) : void
+      {
+         var fmt:TextFormat = null;
+         this.hpmFocusNumOn = show;
+         if(show && !this.hpmFocusTf)
+         {
+            this.hpmFocusTf = new TextField();
+            fmt = new TextFormat("$NormalFont",Math.max(10,this.hpmFocusH * 1.15),0xFFFFFF);
+            this.hpmFocusTf.defaultTextFormat = fmt;
+            this.hpmFocusTf.selectable = false;
+            this.hpmFocusTf.mouseEnabled = false;
+            this.hpmFocusTf.autoSize = "left";
+            this.hpmFocusTf.wordWrap = false;
+            this.hpmFocusTf.multiline = false;
+            addChild(this.hpmFocusTf);
+         }
+         if(this.hpmFocusTf)
+         {
+            this.hpmFocusTf.text = Math.round(cur) + " / " + Math.round(max);
+            this.hpmApplyParts();
+         }
+      }
+
+      // the number sits just past the adrenaline bar, moved and sized with it
+      private function hpmPlaceNumber() : void
+      {
+         var row:DisplayObject = null;
+         var b:Rectangle = null;
+         if(!this.hpmFocusTf || this.hpmRows.length < 2)
+         {
+            return;
+         }
+         row = DisplayObject(this.hpmRows[1]);
+         b = row.getBounds(this);
+         this.hpmFocusTf.scaleX = Math.max(0.1,Math.abs(row.scaleY));
+         this.hpmFocusTf.scaleY = Math.max(0.1,Math.abs(row.scaleY));
+         this.hpmFocusTf.x = b.right + 4;
+         this.hpmFocusTf.y = b.top + (b.height - this.hpmFocusTf.height) / 2;
+         this.hpmFocusTf.visible = this.hpmFocusNumOn && row.visible;
       }
 
       // length along an object's art: a straight bar's width; an arc's chord stretched by a quarter-circle's arc/chord
@@ -669,6 +775,7 @@
             k++;
          }
          this.hpmApplyVis();
+         this.hpmPlaceNumber();
       }
 
       // is part k set to stay shown when the game fades the widget
@@ -728,6 +835,10 @@
                d.visible = this.hpmAllowed(k) && (!held || this.hpmStays(k)) && !(k < 3 && this.hpmIsCiri && k > 0);
             }
             k++;
+         }
+         if(this.hpmFocusTf && this.hpmRows.length > 1)
+         {
+            this.hpmFocusTf.visible = this.hpmFocusNumOn && DisplayObject(this.hpmRows[1]).visible;
          }
       }
 

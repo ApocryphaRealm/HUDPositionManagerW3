@@ -239,6 +239,64 @@ public function HPM_SetCombat(combat : bool)
 	hpmFxWolfCombat.InvokeSelfOneArg(FlashArgBool(combat));
 }
 
+// The adrenaline bar as ONE continuous bar, for a mod that stores a pool in adrenaline (Witcher Gear Overhaul's Magic).
+// Call these on the player widget: ((CR4ScriptedHud)theGame.GetHud()).GetHudModule("WolfHeadModule") cast to
+// CR4HudModuleWolfHead. Each is a no-op when the movie is not HPM's (HPM not installed). With nothing called the bar is
+// vanilla: 3 segments, maximum 3.
+@addField(CR4HudModuleWolfHead)
+var hpmFxFocusSegs : CScriptedFlashFunction;
+
+@addField(CR4HudModuleWolfHead)
+var hpmFxFocusMax : CScriptedFlashFunction;
+
+@addField(CR4HudModuleWolfHead)
+var hpmFxFocusNum : CScriptedFlashFunction;
+
+// segments: 1 = no dividers and no blink at each third (one continuous bar); 3 = vanilla; n = n - 1 evenly spaced marks
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetFocusSegments(segments : int)
+{
+	if (!hpmFxFocusSegs)
+	{
+		hpmFxFocusSegs = GetModuleFlash().GetMemberFlashFunction("hpmSetFocusSegments");
+		if (!hpmFxFocusSegs)
+		{
+			return;
+		}
+	}
+	hpmFxFocusSegs.InvokeSelfOneArg(FlashArgInt(segments));
+}
+
+// the adrenaline value that means full (3.0 is the game's)
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetFocusMax(maxValue : float)
+{
+	if (!hpmFxFocusMax)
+	{
+		hpmFxFocusMax = GetModuleFlash().GetMemberFlashFunction("setFocusMax");
+		if (!hpmFxFocusMax)
+		{
+			return;
+		}
+	}
+	hpmFxFocusMax.InvokeSelfOneArg(FlashArgNumber(maxValue));
+}
+
+// a small "current / max" number past the bar's right end; show = false hides it
+@addMethod(CR4HudModuleWolfHead)
+public function HPM_SetFocusNumber(current : float, maxValue : float, show : bool)
+{
+	if (!hpmFxFocusNum)
+	{
+		hpmFxFocusNum = GetModuleFlash().GetMemberFlashFunction("hpmSetFocusNumber");
+		if (!hpmFxFocusNum)
+		{
+			return;
+		}
+	}
+	hpmFxFocusNum.InvokeSelfThreeArgs(FlashArgNumber(current), FlashArgNumber(maxValue), FlashArgBool(show));
+}
+
 // Each part's box on the screen, for the page's slider ranges ("" when the movie is not ours).
 @addField(CR4HudModuleWolfHead)
 var hpmFxWolfReport : CScriptedFlashFunction;

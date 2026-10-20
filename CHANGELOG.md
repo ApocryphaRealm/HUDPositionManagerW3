@@ -2,6 +2,21 @@
 
 Every version, beside the code it describes (rule 61).
 
+## 1.0.1 - 2026-10-20 - built, not yet tested in game - HUD Position Manager
+
+- **The adrenaline bar can be drawn as one continuous bar** (for Witcher Gear Overhaul's Magic; nothing changes unless a
+  mod calls these - with nothing called the bar is the game's: three segments, maximum 3, a blink at each point):
+  - the two dividers are a shape of their own, so they can be hidden;
+  - `hpmSetFocusSegments(n)` (movie) / `HPM_SetFocusSegments(n)` (script): 1 = no dividers and no blink when a third is
+    crossed (the blink stays for "full"); 3 = vanilla; n = n - 1 evenly spaced marks;
+  - `setFocusMax(m)` / `HPM_SetFocusMax(m)`: the adrenaline value that means full (default 3), used by the bar and the
+    game's own hidden bar;
+  - `hpmSetFocusNumber(cur, max, show)` / `HPM_SetFocusNumber(cur, max, show)`: a small "current / max" number past
+    the bar's right end (hidden until a mod asks; it moves, scales and hides with the adrenaline bar). The font is the
+    game's `$NormalFont` - to be checked in game.
+- The script side lives on the player widget module (`CR4HudModuleWolfHead`) beside the layout calls; each is a
+  no-op when the movie is not HPM's.
+
 ## 1.0.0 - 2026-10-07 - reopened (unreleased) - HUD Position Manager
 
 Renamed from Square Minimap (the owner, 2026-10-07: "you may as well just rename it HUD Position Manager at this
