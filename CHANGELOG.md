@@ -27,13 +27,14 @@ Every version, beside the code it describes (rule 61).
     of combat, always visible, move with another widget, the Combined widgets group.
   - the three focus functions above stay, harmless with the vanilla default.
 - **The adrenaline bar's look is a switch, "Vanilla look", on the Adrenaline bar tab** (on by default; one entry, no new
-  tab). On: the game's own adrenaline points and fill are drawn where the game puts them, and HPM's straight bar is hidden;
-  Move, Size, Hide, Show and Always visible still apply to them (they sit in a container of HPM's). Off: HPM's straight
+  tab). On: the game's own adrenaline arc (its three segments, fill and blink) exactly as the game draws it - the clip stays
+  where the game placed it, never moved into a container and never recoloured; only its own position and size are offset
+  (Move, Size) and Hide, Show and Always visible apply. HPM's straight bar is hidden. Off: HPM's straight
   bar under the stamina bar, as before. Length and Height are the straight bar's only (a tooltip and a note say so). Like
   the minimap's shape it is a look, not a place: Reset and presets leave it alone. INI `[General] bVanillaAdrenaline`;
   sent to the movie as the 16th field of the Adrenaline element; `hpmSetAdrenalineVanilla(on)` in the movie.
-- **Adrenaline is red in both looks**: the straight bar's fill is a clear red (0xD2302A; it was blue, 0x4E9BDA), and the
-  game's own points get a red colour transform (green and blue drawn down, red kept). The Magic bar is unchanged apart from
+- **The straight adrenaline bar is red** (0xD2302A; it was blue, 0x4E9BDA). The vanilla look keeps the game's own colours
+  (its fill is already red); the first build's red colour transform on it is gone. The Magic bar is unchanged apart from
   its colour.
 - The script side lives on the player widget module (`CR4HudModuleWolfHead`) beside the layout calls; each is a
   no-op when the movie is not HPM's.

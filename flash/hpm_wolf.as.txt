@@ -96,30 +96,23 @@
       // ---------------------------------------------------------------------------------------------------------------
       // The adrenaline bar's look (the owner, 2026-10-20: "Now that we have a separate magic bar, I'd prefer if we reverted
       // or added a toggle to the adrenaline bar so that it goes back to vanilla look", one Adrenaline bar entry with a
-      // toggle). Vanilla look (the default): the game's own pips and fill (mcAdrenalinePoints) are drawn where the game
-      // puts them and the straight bar is hidden; they sit in a container of ours (hpmBoxes[1]), so Move, Size and Hide
-      // still apply - Length and Height belong to the straight bar only. Off: HPM's straight bar, as before. Red in both
-      // looks: the straight bar's fill colour, and a colour transform on the vanilla container (the game's art is bitmaps).
+      // toggle; then, in game: "you should just make it identical like the original vanilla one ... It should just be the
+      // vanilla one that you can move around separately"). Vanilla look (the default): the game's own mcAdrenalinePoints,
+      // untouched - it stays the game's child where the game placed it, no container, no colour change; only its own
+      // matrix is offset from its rest one (Move, Size) and its visible flag follows Hide / Show / Always visible. The
+      // straight bar is hidden. Off: HPM's red straight bar, as before. Length and Height belong to the straight bar only.
       // The setting arrives as the 16th field of the Adrenaline element in the layout string (hpmSetLayout).
       // ---------------------------------------------------------------------------------------------------------------
       private var hpmAdrVanilla:Boolean = true;
-
-      // the vanilla pips' red: green and blue drawn down, red kept and lifted a little (white or gold art comes out red)
-      private function hpmTintAdrenaline() : void
-      {
-         var box:DisplayObject = this.hpmBoxes[1] as DisplayObject;
-         if(box)
-         {
-            box.transform.colorTransform = new ColorTransform(1,0.22,0.18,1,40,0,0,0);
-         }
-      }
+      private var hpmAdrRestM:Matrix = null;                 // mcAdrenalinePoints' own matrix as the game placed it
+      private var hpmAdrRestC:flash.geom.Point = null;       // its centre at rest (this widget's units)
 
       // what draws the adrenaline part now: the vanilla container, or the straight bar
       private function hpmAdrObj() : DisplayObject
       {
-         if(this.hpmAdrVanilla && this.hpmBoxes[1])
+         if(this.hpmAdrVanilla && this.mcAdrenalinePoints && this.hpmAdrRestM)
          {
-            return DisplayObject(this.hpmBoxes[1]);
+            return this.mcAdrenalinePoints;
          }
          return this.hpmRows.length > 1 ? DisplayObject(this.hpmRows[1]) : null;
       }
@@ -402,9 +395,13 @@
          this.hpmWrap(4,[this.mcSkullBck,this.mcSkull]);
          this.hpmWrap(5,[this.mcBckCircle,this.mcWolfsHead,this.mcMutationFeedback]);
          this.hpmWrap(6,[this.mcHealthBar]);
-         // the game's own adrenaline pips and fill, for the vanilla look (moved, sized and hidden as one; tinted red)
-         this.hpmWrap(1,[this.mcAdrenalinePoints]);
-         this.hpmTintAdrenaline();
+         // the game's own adrenaline art, for the vanilla look: its rest matrix and centre (it is never reparented)
+         if(this.mcAdrenalinePoints)
+         {
+            this.hpmAdrRestM = this.mcAdrenalinePoints.transform.matrix.clone();
+            fill = this.mcAdrenalinePoints.getBounds(this);
+            this.hpmAdrRestC = new flash.geom.Point(fill.x + fill.width / 2,fill.y + fill.height / 2);
+         }
          // the experience bar with its level-up mark (the diamond at the line's right end); the container takes the line's
          // own depth, under the medallion, and is measured by the line, not by the bar's value mask (hpmLineBox)
          xpAt = !this.mcExperienceBar || this.mcExperienceBar.parent != this ? -1 : getChildIndex(this.mcExperienceBar);
@@ -608,9 +605,9 @@
             }
             i++;
          }
-         // the vanilla look shows the game's own adrenaline art - only once it is in our container, so the widget's rest
-         // box (measured in hpmBarsInit, after the wraps, with this art still at alpha 0) never includes it
-         if(this.mcAdrenalinePoints && this.hpmAdrVanilla && this.hpmBoxes[1])
+         // the vanilla look shows the game's own adrenaline art - only after hpmBarsInit measured the widget's rest box
+         // (with this art still at alpha 0), so the box never includes it
+         if(this.mcAdrenalinePoints && this.hpmAdrVanilla && this.hpmAdrRestM)
          {
             this.mcAdrenalinePoints.alpha = 1;
          }
@@ -877,6 +874,7 @@
          var sx:Number = NaN;
          var sy:Number = NaN;
          var ri:int = 0;
+         var m:Matrix = null;
          while(k < HPM_PART_KEYS.length)
          {
             o = this.hpmPartsOn ? this.hpmParts[k] : null;
@@ -898,15 +896,16 @@
                   row.x = this.hpmRowBase[ri][0] + d.x - (b.x + b.width / 2) * (sx - 1);
                   row.y = this.hpmRowBase[ri][1] + d.y - (b.y + b.height / 2) * (sy - 1);
                }
-               if(k == 1 && this.hpmBoxes[1])
+               if(k == 1 && this.mcAdrenalinePoints && this.hpmAdrRestM)
                {
-                  // the vanilla look's container: Move and Size only (Length and Height are the straight bar's)
-                  box = DisplayObject(this.hpmBoxes[1]);
-                  c = this.hpmBoxC[1];
-                  box.scaleX = !o ? 1 : o.s;
-                  box.scaleY = !o ? 1 : o.s;
-                  box.x = d.x + c.x * (1 - box.scaleX);
-                  box.y = d.y + c.y * (1 - box.scaleY);
+                  // the vanilla art's own matrix: its rest one, sized about its rest centre (Size only - Length and
+                  // Height are the straight bar's) and moved
+                  m = this.hpmAdrRestM.clone();
+                  c = this.hpmAdrRestC;
+                  m.translate(-c.x,-c.y);
+                  m.scale(!o ? 1 : o.s,!o ? 1 : o.s);
+                  m.translate(c.x + d.x,c.y + d.y);
+                  this.mcAdrenalinePoints.transform.matrix = m;
                }
             }
             else if(this.hpmBoxes[k])
@@ -985,12 +984,13 @@
             if(d)
             {
                d.visible = this.hpmAllowed(k) && (!held || this.hpmStays(k)) && !(k < 3 && this.hpmIsCiri && k > 0) && (k != 8 || this.hpmMagicOn)
-                  && !(k == 1 && this.hpmAdrVanilla && this.hpmBoxes[1]);
+                  && !(k == 1 && this.hpmAdrVanilla && this.hpmAdrRestM);
             }
-            if(k == 1 && this.hpmBoxes[1])
+            if(k == 1 && this.mcAdrenalinePoints && this.hpmAdrRestM)
             {
-               // the vanilla container (the game also hides the art inside it for Ciri)
-               DisplayObject(this.hpmBoxes[1]).visible = this.hpmAdrVanilla && this.hpmAllowed(1) && (!held || this.hpmStays(1)) && !this.hpmIsCiri;
+               // the vanilla art's own visible flag: the game's (hidden for Ciri), and in the vanilla look also Hide / Show /
+               // Always visible; in the straight-bar look it is at alpha 0 (hpmHideRound)
+               this.mcAdrenalinePoints.visible = !this.hpmIsCiri && (!this.hpmAdrVanilla || this.hpmAllowed(1) && (!held || this.hpmStays(1)));
             }
             k++;
          }

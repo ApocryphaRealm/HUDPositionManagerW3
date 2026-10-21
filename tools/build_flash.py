@@ -40,8 +40,7 @@ MINIMAP_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display
                    "   import flash.geom.Rectangle;\n   import flash.text.TextField;\n   ")
 WOLF_IMPORTS = ("import flash.display.DisplayObject;\n   import flash.display.DisplayObjectContainer;\n"
                 "   import flash.display.GradientType;\n"
-                "   import flash.display.Shape;\n   import flash.display.Sprite;\n   import flash.geom.ColorTransform;\n"
-                "   import flash.geom.Matrix;\n"
+                "   import flash.display.Shape;\n   import flash.display.Sprite;\n   import flash.geom.Matrix;\n"
                 "   import flash.geom.Rectangle;\n   import flash.text.TextField;\n   import flash.text.TextFormat;\n   ")
 DIALOG_IMPORTS = "import flash.geom.Rectangle;\n   import red.game.witcher3.utils.CommonUtils;\n   "
 
