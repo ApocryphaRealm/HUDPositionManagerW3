@@ -54,6 +54,11 @@ namespace settings
 		// (the owner, 2026-10-14: "The minimap shape should be toggleable though"). A look, not a place: Reset and presets
 		// leave it alone. Sent to the minimap movie as a 16th field on the Minimap element (LayoutString).
 		bool                 squareMinimap = true;
+		// [General] bVanillaAdrenaline - the adrenaline bar's look: the game's own pips (on by default) or HPM's straight bar
+		// (the owner, 2026-10-20: "it should just be a toggle to switch between the settings, whether it's on or off the
+		// vanilla look"). A look, like the minimap's shape: Reset and presets leave it alone. Sent to the player widget's
+		// movie as a 16th field on the Adrenaline element (LayoutString).
+		bool                 vanillaAdrenaline = true;
 		std::vector<Element> elements = Defaults();
 		Group                group = DefaultGroup();
 		int                  logLevel = 2;          // [Log] uLogLevel (rule 14: shipped at info)

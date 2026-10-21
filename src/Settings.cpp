@@ -38,6 +38,7 @@ namespace settings
 				{ "General.bPreview", a_v.preview ? "1" : "0" },
 				{ "General.bUnlocked", a_v.unlocked ? "1" : "0" },
 				{ "General.bSquareMinimap", a_v.squareMinimap ? "1" : "0" },
+				{ "General.bVanillaAdrenaline", a_v.vanillaAdrenaline ? "1" : "0" },
 			};
 			const auto& all = elements::All();
 			for (std::size_t i = 0; i < all.size() && i < a_v.elements.size(); ++i) {
@@ -328,6 +329,7 @@ namespace settings
 		if (const auto* s = Get(entries, "General.bEnabled")) v.enabled = Flag(*s);
 		if (const auto* s = Get(entries, "General.bUnlocked")) v.unlocked = Flag(*s);
 		if (const auto* s = Get(entries, "General.bSquareMinimap")) v.squareMinimap = Flag(*s);
+		if (const auto* s = Get(entries, "General.bVanillaAdrenaline")) v.vanillaAdrenaline = Flag(*s);
 		const int changed = ReadLayout(entries, v);
 		if (const auto* s = Get(entries, "Log.uLogLevel")) v.logLevel = std::atoi(s->c_str());
 		Clamp(v);
@@ -526,6 +528,7 @@ namespace settings
 			s += std::format("|{},{},{},{},{},{},{},{},{},{},{},{},{:.0f},{},{}", all[i].key, n(e.x), n(e.y), n(e.scale), n(e.stretchX), n(e.stretchY),
 				e.hide ? 1 : 0, e.show, e.alwaysVisible ? 1 : 0, e.place ? 1 : 0, e.moveWith, a_v.group.Has(all[i].key) ? 1 : 0, e.zoom, e.fill, e.grow);
 			if (std::string_view(all[i].key) == "Minimap") s += a_v.squareMinimap ? ",1" : ",0";   // the shape (16th field)
+			if (std::string_view(all[i].key) == "Adrenaline") s += a_v.vanillaAdrenaline ? ",1" : ",0";   // the look (16th field)
 		}
 		return s;
 	}

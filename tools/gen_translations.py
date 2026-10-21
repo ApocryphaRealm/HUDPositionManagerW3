@@ -446,6 +446,31 @@ row("HPM_SquareMapHint",
     "オン：ミニマップは四角く、ゲームのリングを四角く描いた枠で囲まれます。オフ：ゲーム本来の丸いミニマップ。リセットしても形は変わりません。",
     "켜기: 미니맵이 사각형이 되고, 게임의 링을 사각형으로 그린 테두리가 둘러쌉니다. 끄기: 게임 본래의 둥근 미니맵. 초기화해도 모양은 그대로입니다.",
     "开：小地图为方形，以画成方形的游戏圆环为边框。关：游戏原本的圆形小地图。重置不会改变形状。")
+row("HPM_VanillaLook", "Vanilla look",
+    "Original-Look", "Apparence d'origine", "Aspecto original", "Aspetto originale", "Oryginalny wygląd",
+    "Původní vzhled", "Исходный вид", "バニラの見た目", "기본 모습", "原版外观")
+row("HPM_VanillaLookHint",
+    "On: the game's own adrenaline points. Off: a straight bar under the stamina bar. Both are red. Reset leaves the look as it is.",
+    "An: die spieleigenen Adrenalinpunkte. Aus: eine gerade Leiste unter der Ausdauerleiste. Beide sind rot. Zurücksetzen lässt den Look, wie er ist.",
+    "Activé : les points d'adrénaline du jeu. Désactivé : une barre droite sous la barre d'endurance. Les deux sont rouges. La réinitialisation ne change pas l'apparence.",
+    "Activado: los puntos de adrenalina del propio juego. Desactivado: una barra recta bajo la barra de aguante. Ambos son rojos. Restablecer no cambia el aspecto.",
+    "Attivo: i punti adrenalina del gioco. Disattivo: una barra dritta sotto la barra della stamina. Entrambi sono rossi. Il ripristino lascia l'aspetto com'è.",
+    "Wł.: punkty adrenaliny samej gry. Wył.: prosty pasek pod paskiem wytrzymałości. Oba są czerwone. Reset nie zmienia wyglądu.",
+    "Zap.: body adrenalinu samotné hry. Vyp.: rovný pruh pod ukazatelem výdrže. Obojí je červené. Obnovení vzhled nemění.",
+    "Вкл.: собственные очки адреналина игры. Выкл.: прямая полоса под полосой выносливости. Оба красные. Сброс не меняет вид.",
+    "オン：ゲーム本来のアドレナリンポイント。オフ：スタミナバーの下のまっすぐなバー。どちらも赤です。リセットしても見た目は変わりません。",
+    "켜기: 게임 본래의 아드레날린 포인트. 끄기: 기력 바 아래의 곧은 바. 둘 다 빨간색입니다. 초기화해도 모습은 그대로입니다.",
+    "开：游戏原本的肾上腺素点。关：耐力条下方的一条直条。两者都是红色。重置不会改变外观。")
+row("HPM_StraightOnly", "Straight-bar look only",
+    "Nur im Look als gerade Leiste", "Apparence en barre droite uniquement", "Solo con el aspecto de barra recta",
+    "Solo con l'aspetto a barra dritta", "Tylko w wyglądzie prostego paska", "Jen ve vzhledu rovného pruhu",
+    "Только для вида прямой полосы", "まっすぐなバーの見た目のみ", "곧은 바 모습에서만", "仅限直条外观")
+row("HPM_StraightOnlyHint", "Length and Height: straight-bar look only.",
+    "Länge und Höhe: nur im Look als gerade Leiste.", "Longueur et Hauteur : apparence en barre droite uniquement.",
+    "Longitud y Altura: solo con el aspecto de barra recta.", "Lunghezza e Altezza: solo con l'aspetto a barra dritta.",
+    "Długość i Wysokość: tylko w wyglądzie prostego paska.", "Délka a Výška: jen ve vzhledu rovného pruhu.",
+    "Длина и Высота: только для вида прямой полосы.", "長さと高さ：まっすぐなバーの見た目のみ。",
+    "길이와 높이: 곧은 바 모습에서만.", "长度和高度：仅限直条外观。")
 row("HPM_Hide", "Hide",
     "Ausblenden", "Masquer", "Ocultar", "Nascondi", "Ukryj", "Skrýt", "Скрыть", "非表示", "숨기기", "隐藏")
 row("HPM_Show", "Show",

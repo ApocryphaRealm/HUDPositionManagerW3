@@ -238,12 +238,27 @@ namespace page
 			held.y = ImGui::IsItemActive();
 			ImGui::SetNextItemWidth(Width());
 			changed |= ScaleSlider((std::string(TR("HPM_Size", "Size")) + id + "s").c_str(), &e.scale, settings::kScaleMin, settings::kScaleMax);
+			// the adrenaline bar's look (the owner, 2026-10-20: one Adrenaline bar entry, "just make the settings be in the same
+			// page, and it should just be a toggle"): on, the game's own pips; off, the straight bar. A look, not a place:
+			// Reset leaves it alone, as with the minimap's shape
+			const bool adrenaline = std::string_view(el.key) == "Adrenaline";
+			if (adrenaline) {
+				bool vanilla = a_v.vanillaAdrenaline;
+				if (Switch((std::string(TR("HPM_VanillaLook", "Vanilla look")) + id + "w").c_str(), &vanilla)) {
+					settings::Update([vanilla](settings::Values& v) { v.vanillaAdrenaline = vanilla; });
+					logger::info("page: adrenaline look {}", vanilla ? "vanilla" : "straight bar");
+				}
+				Hint(TR("HPM_VanillaLookHint", "On: the game's own adrenaline points. Off: a straight bar under the stamina bar. Both are red. Reset leaves the look as it is."));
+			}
 			if (el.stretch) {
 				ImGui::SetNextItemWidth(Width());
 				changed |= ScaleSlider((std::string(TR("HPM_Length", "Length")) + id + "l").c_str(), &e.stretchX, settings::kScaleMin, settings::kScaleMax);
+				if (adrenaline) ImGui::SetItemTooltip("%s", TR("HPM_StraightOnly", "Straight-bar look only"));
 				ImGui::SetNextItemWidth(Width());
 				changed |= ScaleSlider((std::string(TR("HPM_Height", "Height")) + id + "t").c_str(), &e.stretchY, settings::kScaleMin, settings::kScaleMax);
+				if (adrenaline) ImGui::SetItemTooltip("%s", TR("HPM_StraightOnly", "Straight-bar look only"));
 				Hint(TR("HPM_StretchHint", "Length and Height stretch the bar on one side each, on top of Size."));
+				if (adrenaline) Hint(TR("HPM_StraightOnlyHint", "Length and Height: straight-bar look only."));
 			}
 			if (std::string_view(el.key) == "Minimap") {
 				int zoom = static_cast<int>(std::lround(e.zoom));

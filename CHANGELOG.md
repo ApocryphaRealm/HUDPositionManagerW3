@@ -16,7 +16,7 @@ Every version, beside the code it describes (rule 61).
     game's `$NormalFont` - to be checked in game.
 - **A Magic bar of its own** (Witcher Gear Overhaul's Magic is a separate pool that only Signs spend; the adrenaline bar is
   the game's again). A fourth bar in the player widget, under the toxicity bar, drawn like the others (dark track, two-tone
-  fill, thin border) in an arcane violet-blue. It is hidden until a mod shows it, so without one the widget looks exactly as
+  fill, thin border) in a clear blue (0x3A7BE0; it was violet-blue, 0x8A4FE0). It is hidden until a mod shows it, so without one the widget looks exactly as
   before:
   - `hpmSetMagic(current, max)` (movie, Numbers) / `HPM_SetMagic(current, max)` (script): the fill is current / max, and the
     number shown is "current / max";
@@ -26,6 +26,15 @@ Every version, beside the code it describes (rule 61).
   - on the settings page it is the **Magic bar** tab, like the other bars: move, size, length and height, hide, show in or out
     of combat, always visible, move with another widget, the Combined widgets group.
   - the three focus functions above stay, harmless with the vanilla default.
+- **The adrenaline bar's look is a switch, "Vanilla look", on the Adrenaline bar tab** (on by default; one entry, no new
+  tab). On: the game's own adrenaline points and fill are drawn where the game puts them, and HPM's straight bar is hidden;
+  Move, Size, Hide, Show and Always visible still apply to them (they sit in a container of HPM's). Off: HPM's straight
+  bar under the stamina bar, as before. Length and Height are the straight bar's only (a tooltip and a note say so). Like
+  the minimap's shape it is a look, not a place: Reset and presets leave it alone. INI `[General] bVanillaAdrenaline`;
+  sent to the movie as the 16th field of the Adrenaline element; `hpmSetAdrenalineVanilla(on)` in the movie.
+- **Adrenaline is red in both looks**: the straight bar's fill is a clear red (0xD2302A; it was blue, 0x4E9BDA), and the
+  game's own points get a red colour transform (green and blue drawn down, red kept). The Magic bar is unchanged apart from
+  its colour.
 - The script side lives on the player widget module (`CR4HudModuleWolfHead`) beside the layout calls; each is a
   no-op when the movie is not HPM's.
 
