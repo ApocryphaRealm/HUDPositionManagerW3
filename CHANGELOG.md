@@ -39,6 +39,12 @@ Every version, beside the code it describes (rule 61).
 - The script side lives on the player widget module (`CR4HudModuleWolfHead`) beside the layout calls; each is a
   no-op when the movie is not HPM's.
 
+### Added
+- **A start-up check that says why the HUD does not change** (Banjomir777's report on TW3SE, Nexus 14337). HUDPositionManager.log now opens with 'check:' lines: whether Mods\modHUDPositionManager is installed with its HUD movies and script, its line in mods.settings (a warning for Enabled=0), and every other Mods folder that ships one of the three HUD movies this mod replaces (hud_minimap2, hud_wolfstatbars, hud_dialog - read from each bundle's file table) or replaces a HUD module script it hooks. When the mod folder is missing, disabled or another mod's movie is in the way, the Layout tab shows an orange note naming the mods (eleven languages). The bridge now writes at info level when the layout is first handed to the game and when the HUD first answers, and warns once if the HUD has not answered 5 minutes after start. TW3SE needs nothing extra: it loads HUDPositionManager.asi from bin\x64_dx12 itself (checked on TW3SE 0.2, 2026-10-22: the asi loaded, the layout reached the HUD and the HUD answered).
+
+### Fixed
+- The page said 'In your HUD' from a report the LAST session's HUD left in the game's settings file, before this session's HUD had answered. The left-over HUDPositionManager.Report is cleared at start, and only a report written after that counts.
+
 ## 1.0.0 - 2026-10-07 - reopened (unreleased) - HUD Position Manager
 
 Renamed from Square Minimap (the owner, 2026-10-07: "you may as well just rename it HUD Position Manager at this

@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "AMF.h"
 #include "Bridge.h"
+#include "Diagnose.h"
 #include "Page.h"
 #include "Paths.h"
 #include "Settings.h"
@@ -43,6 +44,7 @@ namespace
 		logger::info("HUD Position Manager {} loaded (The Witcher 3) from {} - log level {} ({} and above are written); set uLogLevel=0 "
 		             "in HUDPositionManager.ini to capture everything",
 			HPM_VERSION, paths::ModuleFolder().string(), lvl, spdlog::level::to_string_view(level));
+		diagnose::Run();   // the Mods folder, mods.settings and other mods' HUD movies - the links the page cannot see
 		bool registered = false;
 		for (int i = 0; i < 1200 && !registered; ++i) {   // the framework is usually loaded first (its name sorts first)
 			registered = TryRegister();

@@ -10,6 +10,7 @@
 
 #include "AMF.h"
 #include "Bridge.h"
+#include "Diagnose.h"
 #include "Settings.h"
 #include "Strings.h"
 
@@ -403,6 +404,17 @@ namespace page
 			g_topTab = 1;
 			ImGui::TextWrapped("%s", TR("HPM_Intro", "Move, resize or hide each part of the HUD. Changes show in the HUD at once and are saved automatically."));
 			if (!AMF::HasGameVars()) Hint(TR("HPM_NoBridge", "This Apocrypha Menu Framework cannot pass settings to the game (1.0.2 or later is needed)."));
+			if (diagnose::Blocking()) {
+				// the start-up check (Diagnose.cpp) found a link that keeps the HUD from changing; the log says which
+				const auto in = diagnose::Summary();
+				std::string t = in.empty()
+				    ? std::string(TR("HPM_DiagMissing", "The game is not loading this mod's HUD files (the Mods folder modHUDPositionManager), so the HUD will not change. HUDPositionManager.log says what is missing."))
+				    : std::string(TR("HPM_DiagConflict", "Another mod replaces the HUD files this mod changes, so your layout may not show: %s. The game uses only one mod's copy. HUDPositionManager.log has the details."));
+				if (const auto at = t.find("%s"); at != std::string::npos) t.replace(at, 2, in);
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.3f, 1.0f));
+				ImGui::TextWrapped("%s", t.c_str());
+				ImGui::PopStyleColor();
+			}
 			if (Switch(TR("HPM_Enabled", "Apply my layout"), &v.enabled)) {
 				settings::Update([&](settings::Values& s) { s.enabled = v.enabled; });
 				logger::info("page: layout {}", v.enabled ? "on" : "off");

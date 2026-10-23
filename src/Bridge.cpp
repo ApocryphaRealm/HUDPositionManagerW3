@@ -110,6 +110,12 @@ namespace bridge
 			// sent once at the start whatever the generation: with no settings file the defaults (every element where the game
 			// puts it) must still replace a layout an earlier session left in the game's own settings
 			std::uint64_t sentGen = ~std::uint64_t{ 0 };
+			bool          firstSend = true, firstReport = true, waitWarned = false;
+			// the game keeps HUDPositionManager.Report in its settings file between sessions, so the value read at start is
+			// the LAST session's HUD: it is cleared first, and nothing counts as an answer until the cleared value has been
+			// read back (before, a left-over report told the page "In your HUD" when this session's HUD had said nothing)
+			bool       cleared = !AMF::SetGameVar(kGroup, "Report", "");
+			const auto start = std::chrono::steady_clock::now();
 			for (;;) {
 				const auto gen = settings::Generation();
 				if (gen != sentGen) {
@@ -117,14 +123,41 @@ namespace bridge
 					if (s != g_lastSent && AMF::SetGameVar(kGroup, "Layout", s.c_str())) {
 						std::scoped_lock l(g_lock);
 						g_lastSent = s;
-						logger::debug("bridge: layout sent ({} characters)", s.size());
+						if (firstSend) {
+							logger::info("bridge: layout handed to the game (setting HUDPositionManager.Layout, {} characters) - "
+							             "HUDPositionManager.ws passes it to the HUD once a game is loaded", s.size());
+							firstSend = false;
+						} else {
+							logger::debug("bridge: layout sent ({} characters)", s.size());
+						}
 					}
 					sentGen = gen;
 				}
 				const auto rep = Read("Report");
-				if (!rep.empty() && rep != g_lastReport) {
+				if (!cleared) {
+					cleared = rep.empty();
+					if (!cleared && std::chrono::steady_clock::now() - start > 150s) {
+						logger::warn("bridge: the left-over HUD report could not be cleared in 150 s - reading the HUD's reports as they are");
+						cleared = true;
+					}
+				} else if (!rep.empty() && rep != g_lastReport) {
 					g_lastReport = rep;
 					ParseReport(rep);
+					if (firstReport) {
+						const auto st = Statuses();
+						const auto found = std::ranges::count_if(st, [](const ElementStatus& e) { return e.found; });
+						logger::info("bridge: the HUD answered - HUD Position Manager's HUD movies and script are running ({} of {} "
+						             "elements in the HUD now)", found, st.size());
+						logger::flush();
+						firstReport = false;
+					}
+				}
+				if (firstReport && !waitWarned && std::chrono::steady_clock::now() - start > 5min) {
+					logger::warn("bridge: no answer from the HUD 5 minutes after start. Normal while you stay on the main menu; with "
+					             "a save loaded it means the game is not running this mod's HUD movies or script - see the 'check:' "
+					             "lines at the top of this log (the Mods folder, mods.settings, another mod's HUD movies)");
+					logger::flush();
+					waitWarned = true;
 				}
 				std::this_thread::sleep_for(250ms);
 			}

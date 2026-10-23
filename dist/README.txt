@@ -42,6 +42,8 @@ from the game's own layout.
 INSTALL
 Install the Apocrypha Menu Framework (1.0.2 or later) first, as its page describes. Then copy the Mods and bin folders
 into the game folder, or install with a mod manager (Mod Organizer 2, Vortex). No script merging is needed.
+Using TW3SE (Witcher 3 Script Extender)? Nothing extra is needed: with the framework's "No dinput8 (for TW3SE)" file,
+TW3SE loads HUDPositionManager.asi from bin\x64_dx12 itself (its tw3se.log lists "asi: HUDPositionManager.asi loaded").
 It replaces three of the game's HUD movies (hud_minimap2, hud_wolfstatbars and hud_dialog): another mod that replaces
 one of those same movies will not combine with it.
 
@@ -51,6 +53,9 @@ Italian, Polish and Czech).
 
 DEBUGGING
 For a bug report, send bin\x64_dx12\HUDPositionManager\HUDPositionManager.log (it is written fresh at every start).
+The page shows but the HUD does not change? The log's "check:" lines at the top say which link is missing: the
+Mods\modHUDPositionManager folder, its line in mods.settings (Documents\The Witcher 3), or another mod that replaces
+the same HUD movies. "bridge: the HUD answered" means the mod's HUD movies and script are running.
 
 
 REQUIREMENTS
